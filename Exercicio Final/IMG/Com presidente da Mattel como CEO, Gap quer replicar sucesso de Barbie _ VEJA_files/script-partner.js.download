@@ -1,0 +1,94 @@
+document.addEventListener("DOMContentLoaded", function (e) {
+    e.preventDefault();
+
+    let validation = "false";
+    const body = document.querySelector("body");
+    const insertElAdvertisingPartner = (e) => {
+      var el = document.getElementsByTagName("p")[2];
+      var p = document.createElement("p");
+      var a = document.createElement("a");
+      var strong = document.createElement("strong");
+      strong.textContent = e.text_view_front;
+      a.title = e.text_view_front;
+      a.href = e.url_field;
+      a.id = e.text_field_name_partner.toLowerCase().replace("/[^a-zA-Z0-9s]/g", "");
+      a.onclick = function(event){
+        gaSendEvent( '', e.text_field_event_category,  e.text_field_action_category, e.text_field_label_category, '');
+      };
+      a.target = "_blank";
+      a.rel = "nofollow";
+      a.appendChild(strong);
+      p.appendChild(a);
+      el.parentNode.insertBefore(p, el.nextSibling);
+
+      return el;
+    };
+
+  if (body.classList.contains("single-post") || body.classList.contains("single-blog_post") || body.classList.contains("single-special_post")) {
+
+    fields.forEach((element) => {
+      let temporarioTag = element.taxonomy_field_post_tag;
+      let temporarioCategoria = element.taxonomy_field_category;
+      let excludeTag = element.taxonomy_exclude_tag;
+      let excludeCategoria = element.taxonomy_exclude_category;
+      let block = "false";
+
+      if (validation === "false") {
+        try {
+          if(excludeTag){            
+            excludeTag.every((el) => {
+              let excludeTagTrue = customData["tag"].find(
+                (element) => element == el["name"]
+              );              
+              if (typeof excludeTagTrue !== "undefined") {
+                block = "true";
+                return false;
+              }
+            });
+          }
+
+          if(block === "false" && excludeCategoria){            
+            excludeCategoria.every((el) => {
+              let excludeCategoryTrue = customData["editoria"].find(
+                (element) => element == el["name"]
+              );              
+              if (typeof excludeCategoryTrue !== "undefined") {
+                block = "true";
+                return false;
+              }
+            });
+          }
+
+          if (block === "false" && temporarioCategoria) {
+            temporarioCategoria.every((el) => {
+              let categoryTrue = customData["editoria"].find(
+                (element) => element == el["name"]
+              );
+              if (typeof categoryTrue !== "undefined") {
+                validation = "true";
+                insertElAdvertisingPartner(element);
+                return false;
+              }
+            });
+          }
+          
+          if(block === "false" && validation === "false" && temporarioTag){
+            temporarioTag.every((el) => {
+              let tagTrue = customData["tag"].find(
+                (element) => element == el["name"]
+              );
+              if (typeof tagTrue !== "undefined") {
+                validation = "true";
+                insertElAdvertisingPartner(element);
+                return false;
+              }
+            });
+          }          
+        } catch (e) {
+          console.log("**Erro insert advertising partner**");
+          console.log(e);
+        }
+      }
+    });
+  }
+},false);

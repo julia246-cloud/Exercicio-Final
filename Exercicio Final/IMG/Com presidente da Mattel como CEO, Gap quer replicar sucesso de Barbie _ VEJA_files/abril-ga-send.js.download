@@ -1,0 +1,367 @@
+var method_customData = ('undefined' !== customData) ? customData['method-ga-gtag'] : 'gtag';
+
+function gaSendEvent( brand, category, action, label, metric = '', noninteraction = true, send = 'send', hit_type = 'event', method = method_customData, event_value = '', cookie_ua = customData['cookie-ua']) {
+    if (typeof customData['method-ga'] !==  "undefined") {
+        if (customData['method-ga'] !==  "") {
+            if ( ga !== typeof "undefined" && category !== undefined ) {
+                var ga_noninteraction = (noninteraction) ? 1 : 0;
+		
+		ga(String(cookie_ua+'.send'), {
+                hitType: hit_type,
+                eventCategory: category,
+                eventAction: action,
+                eventLabel: label,
+                nonInteraction: ga_noninteraction
+                });
+
+                console.log( `
+                    Tipo: 'ga',
+                    Hit Type: ${hit_type},
+                    Metrica: ${metric},
+                    Categoria: ${category},
+                    Ação do evento: ${action},
+                    Rótulo do evento: ${label},
+		    Não interação: ${ga_noninteraction}
+                ` );
+            }
+        }
+    }
+
+    if (typeof customData['method-gtag'] !== "undefined") {
+        if (customData['method-gtag'] !== "") {
+            if ( gtag !== typeof "undefined" && typeof category !== undefined ) {
+                gtag('event', action, {
+                    event_category: category,
+                    event_label: label,
+                    value: event_value,
+		    'non_interaction': noninteraction
+                });
+
+                console.log( `
+                    Tipo: 'gtag',
+                    Metrica: ${metric},
+                    Categoria: ${category},
+                    Ação do evento: ${action},
+                    Value: ${event_value},
+                    Rótulo do evento: ${label},
+		    Não interação: ${noninteraction}
+                ` );
+            }
+        }
+    }
+}
+
+function gaAddToCart(product, id, price, brand){
+    if (typeof customData['method-ga'] !==  "undefined") {
+        if (customData['method-ga'] !==  "") {
+            if ( ga !== typeof "undefined") {
+                window.dataLayer=window.dataLayer||[];
+                dataLayer.push({
+                'event': 'addToCart',
+                'ecommerce': {
+                        'currencyCode': 'BRL',
+                        'add': {
+                            'products': [{
+                                'name': product,
+                                'id': id,
+                                'price': price,
+                                'brand': brand,
+                                'quantity': 1
+                            }]
+                        }
+                    }
+                });
+
+                console.log( `
+                    Tipo: 'ga',
+                    Event: addToCart,
+                    product: ${product},
+                    id: ${id},
+                    price: ${price},
+                    brand: ${brand},
+                ` );
+            }
+        }
+    }
+
+    if (typeof customData['method-gtag'] !== "undefined") {
+        if (customData['method-gtag'] !== "") {
+            if ( gtag !== typeof "undefined" ) {
+
+                dataLayer.push({ ecommerce: null });  // Clear the previous ecommerce object.
+                dataLayer.push({
+                    event: "add_to_cart",
+                    ecommerce: {
+                        currency: "BRL",
+                        value: price,
+                        items: [
+                            {
+                                item_id: id,
+                                item_name: product,
+                                index: 0,
+                                item_brand: brand,
+                                price: price,
+                                quantity: 1
+                            }
+                        ]
+                    }
+                });
+
+                console.log( `
+                    Tipo: 'gtag',
+                    Event: add_to_cart,
+                    product: ${product},
+                    id: ${id},
+                    price: ${price},
+                    brand: ${brand},
+                ` );
+            }
+        }
+    }
+}
+
+function gaCheckoutOption(checkoutOption){
+    if (typeof customData['method-ga'] !==  "undefined") {
+        if (customData['method-ga'] !==  "") {
+            if ( ga !== typeof "undefined") {
+                window.dataLayer=window.dataLayer||[];
+				dataLayer.push({
+					'event':'checkoutOption',
+					'ecommerce': {
+						'checkout_option': {
+						'actionField': {'step': 1, 'option': checkoutOption}
+						}
+					}
+				});
+
+                console.log( `
+                    Tipo: 'ga',
+                    Event: gaCheckoutOption,
+                    checkoutOption: ${checkoutOption}
+                ` );
+            }
+        }
+    }
+
+    if (typeof customData['method-gtag'] !== "undefined") {
+        if (customData['method-gtag'] !== "") {
+            if ( gtag !== typeof "undefined" ) {
+                
+                gtag('event', 'set_checkout_option', {
+                    "checkout_step": 1,
+                    "checkout_option": "payment_method",
+                    "value":checkoutOption
+                });
+
+                console.log( `
+                    Tipo: 'gtag',
+                    Event: gaCheckoutOption,
+                    checkoutOption: ${checkoutOption}
+                ` );
+            }
+        }
+    }
+}
+
+function gaPurchase(transactionId, transactionTotal, sku, name, brand, category, pID, tipopag){
+    if (typeof customData['method-ga'] !==  "undefined") {
+        if (customData['method-ga'] !==  "") {
+            if ( ga !== typeof "undefined") {
+                window.dataLayer=window.dataLayer||[];
+                dataLayer.push({
+					'event':'purchase',
+					'orderStatus':'confirmed',
+					'currencyCode': 'BRL',
+					'transactionId': transactionId,
+					'transactionAffiliation':'Abril',
+					'transactionTotal': transactionTotal,
+					'transactionTax':'',
+					'transactionShipping':'',
+					'transactionProducts':[{
+						'sku' : sku,
+						'name': name,
+						'brand': brand,
+						'category': category,
+						'price': transactionTotal,
+						'quantity':1,
+					}]
+				});
+
+                console.log( `
+                    Tipo: 'ga',
+                    Event: 'Purchase',
+                    transactionId: ${transactionId},
+                    transactionTotal: ${transactionTotal},
+                    sku: ${sku},
+                    name: ${name},
+                    brand: ${brand},
+                    category: ${category},
+                    pID: ${pID},
+                    tipo pag: ${tipopag},
+                ` );
+            }
+        }
+    }
+
+    if (typeof customData['method-gtag'] !== "undefined") {
+        if (customData['method-gtag'] !== "") {
+            if ( gtag !== typeof "undefined" ) {
+                
+                dataLayer.push({ ecommerce: null });  // Clear the previous ecommerce object.
+                dataLayer.push({
+                  event: "purchase",
+                  ecommerce: {
+                      transaction_id: transactionId,
+                      affiliation: "Online Store",
+                      value: transactionTotal,
+                      currency: "BRL",
+                      items: [{
+                        item_name: name,
+                        item_id: sku,
+                        price: transactionTotal,
+                        item_brand: brand,
+                        item_category: category,
+                        quantity: 1
+                      }]
+                  }
+                });
+
+                console.log( `
+                    Tipo: 'gtag',
+                    Event: 'Purchase',
+                    transactionId: ${transactionId},
+                    transactionTotal: ${transactionTotal},
+                    sku: ${sku},
+                    name: ${name},
+                    brand: ${brand},
+                    category: ${category},
+                    pID: ${pID},
+                    tipo pag: ${tipopag},
+                ` );
+            }
+        }
+    }
+
+    postPurchaseBigQuery(transactionId, transactionTotal, sku, name, brand, category, pID, tipopag);
+}
+
+function postPurchaseBigQuery(transactionId, transactionTotal, sku, name, brand, category, pID, tipopag){
+
+    let userID = gaGlobal.vid;
+    if(localStorage.getItem('abrilUserId')) {
+        userID = localStorage.getItem('abrilUserId');
+    }
+
+    var postUrl = 'https://us-central1-abril-id-testes-1528223718961.cloudfunctions.net/navigationData/dados-conversao';
+    if ('undefined' !== typeof assine_environment) {
+        if( assine_environment[0] == "sandbox"){
+            postUrl = 'https://us-central1-abril-id-homolog.cloudfunctions.net/navigationData/dados-conversao';
+        }
+    }
+
+    if(pID==''){
+        pID = 0;
+    }
+    $.ajax({
+        url: postUrl,
+        type: 'post',
+        dataType: 'json',
+        data: {
+            "produto": `${name}`,
+            "sku": `${sku}`,
+            "categoria": `${category}`,
+            "marca": `${brand}`,
+            "valor": `${transactionTotal}`,
+            "tipo_pagamento": `${tipopag}`,
+            "user_id": `${userID}`,
+            "post_id": pID,
+            "transacao_id": `${transactionId}`
+        },
+        async: true,
+        success: function(data) {
+            console.log('Purchase adicionou ao bigQuery');
+            console.log(data);
+        },
+    });
+}
+
+function gaEventDatalayer(event){
+    if (typeof customData['method-ga'] !==  "undefined") {
+        if (customData['method-ga'] !==  "") {
+            if ( ga !== typeof "undefined") {
+                window.dataLayer=window.dataLayer||[];
+				dataLayer.push(event);
+
+                console.log( `
+                    Tipo: 'ga',
+                    Event: gaEventDatalayer,
+                    event: ${event}
+                ` );
+            }
+        }
+    }
+
+    if (typeof customData['method-gtag'] !== "undefined") {
+        if (customData['method-gtag'] !== "") {
+            if ( gtag !== typeof "undefined" ) {
+                window.dataLayer=window.dataLayer||[];
+				dataLayer.push(event);
+                console.log( `
+                    Tipo: 'gtag',
+                    Event: gaCheckoutOption,
+                    event: ${event}
+                ` );
+            }
+        }
+    }
+}
+
+// Função que substitui a validação 
+// if (typeof ga === 'undefined' || typeof compareMethod === 'undefined' )
+// sendo o parâmetro compareMethod opcional e pegando o parâmetro de method dinamicamente
+function typeOfMethodCompare(compareMethod, method = method_customData) {
+    if (typeof compareMethod !== 'undefined') {
+        if (typeof customData['method-ga'] ===  "undefined" || typeof compareMethod === 'undefined' ) {
+            return 'undefined';
+        }
+        if (typeof customData['method-gtag'] === "undefined" || typeof compareMethod === 'undefined' ) {
+            return 'undefined';
+        }
+    }
+    else {
+        if (typeof customData['method-ga'] ===  "undefined") {
+            return 'undefined';
+        }
+        if (typeof customData['method-gtag'] === "undefined") {
+            return 'undefined';
+        }
+    }
+}
+
+// Função que substitui a criação estática de instância por dinâmica, geralmente precedida pelo método typeOfMethodCompare
+function methodTagConfig(id_gaGtag, cookie_pref, cookie_dom) {
+    if (typeof customData['method-ga'] !==  "undefined") {
+        if (cookie_pref !== 'undefined') {
+            ga('create', id_gaGtag, {'name': cookie_pref, 'cookieDomain': cookie_dom});
+        }
+        else {
+            ga('create', id_gaGtag, 'auto');
+        }
+    }
+    else if (typeof customData['method-gtag'] !== "undefined") {
+        gtag('config', id_gaGtag, {
+            'cookie_prefix': cookie_pref,
+            'cookie_domain': cookie_dom,
+        });
+    }
+} 
+
+
+/* HELPER */
+function isInViewport(el) {
+    let isInViewport = el.top >= 0 &&
+        el.left >= 0 &&
+        el.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        el.right <= (window.innerWidth || document.documentElement.clientWidth);
+    return isInViewport;
+}

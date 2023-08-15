@@ -1,0 +1,109 @@
+$(document).ready(function () {
+
+    $(".accordion h5").click(function () {
+        $(this).parent().toggleClass("open");
+    });
+
+    $(".accordion.single h5").click(function () {
+        $(this).next().slideToggle();
+    });
+
+    $(".afiliado-single-card").each(function () {
+        if (!$(this).prev().hasClass("afiliado-single-card")) {
+            $(this).addClass("inicial");
+        }
+        if (!$(this).next().hasClass("afiliado-single-card")) {
+            $(this).addClass("final");
+        }
+    });
+
+    $(".afiliado-single-card .accordion a").click(function () {
+        let acao_single = $(this).attr("data-event"); //loja
+        let rotulo_single = $(this).attr("data-label"); //produto
+        gaSendEvent('', 'Afiliados', acao_single, rotulo_single, '');
+    });
+
+    const mediaQuery992 = window.matchMedia('(max-width: 992px)')
+
+    $('.slider-full').each(function () {
+        var titleSlider = $(this).data('title');
+        var slider = `.owl-carousel.${titleSlider}`;
+        var owl = $(slider);
+
+        owl.on('initialized.owl.carousel', function (event) {
+            if (mediaQuery992.matches) {
+                $(`.slider-full.${titleSlider} .nav-slider`).hide();
+            } else {
+                if (event.item.count === 3) {
+                    setTimeout(() => {
+                        $(`.slider-full.${titleSlider} .nav-slider`).hide();
+                    }, 300);
+                }
+                if (event.item.count < 3) {
+                    $(`.slider-full.${titleSlider} .nav-slider`).hide();
+                } else {
+                    $(`.slider-full.${titleSlider} .nav-slider`).show();
+                }
+                if (event.page.index === -1) {
+                    $(`.slider-full.${titleSlider} .nav-slider .item.prev`).css('opacity', '0');
+                }
+            }
+        });
+
+        let marginResponse;
+        if (mediaQuery992.matches) {
+            marginResponse = 40;
+        } else {
+            marginResponse = 50;
+        }
+
+        $(slider).owlCarousel({
+            loop: false,
+            nav: false,
+            autoWidth: true,
+            lazyLoad: true,
+            margin: marginResponse,
+            responsive: {
+                0: {
+                    items: 1
+                },
+                600: {
+                    items: 3
+                }
+            }
+        })
+
+        $(`.slider-full.${titleSlider} .nav-slider .item.next`).on('click', function () {
+            owl.trigger('next.owl');
+        });
+        $(`.slider-full.${titleSlider} .nav-slider .item.prev`).on('click', function () {
+            owl.trigger('prev.owl');
+        });
+
+        owl.on('changed.owl.carousel', function (event) {
+            var carousel = event.relatedTarget,
+                current = carousel.current();
+
+            if (current === carousel.maximum()) {
+                setTimeout(() => {
+                    $(`.slider-full.${titleSlider} .nav-slider .item.next`).hide();
+                }, 300);
+            } else {
+                $(`.slider-full.${titleSlider} .nav-slider .item.next`).show();
+            }
+
+            if (event.item.index === 0) {
+                $(`.slider-full.${titleSlider} .nav-slider .item.prev`).css('opacity', '0');
+            } else {
+                $(`.slider-full.${titleSlider} .nav-slider .item.prev`).css('opacity', '1');
+            }
+        });
+    })
+
+
+    $(".afiliado-vitrine-card .accordion .sub-itens ul li a").click(function () {
+        let acao = $(this).attr("data-event"); //loja
+        let rotulo = $(this).attr("data-label"); //produto
+        gaSendEvent('', 'Afiliados', acao, rotulo, '');
+    });
+});

@@ -1,0 +1,433 @@
+var AbrilOfertas = (function () {
+
+  var assineUrl = ''; 
+  var assineEnvironment = '';
+
+  function init(){
+    assineUrl = 'https://www.assine.abril.com.br/'; 
+    AbrilLogin.isGaLoaded( getGa );
+    console.log("OFERTAS");
+    listeners();
+
+
+    if (typeof offersPaywall !== 'undefined') {
+      assineEnvironment = offersPaywall.settings.environment;
+      if ( 'sandbox' === assineEnvironment ) {
+        assineUrl = 'https://homolog-assine.abril.com.br/';
+      }
+    }
+
+    if (typeof assineUrl === 'undefined') {
+      assineUrl = 'https://www.assine.abril.com.br/';
+    }
+
+  }
+
+  function getGa(){
+    if( AbrilLogin.isUnicId == true ){
+        $("#codIdentificadorN").val( AbrilLogin.getUnicId() );
+      }
+  }
+
+
+  function verifyContent(content){
+    if ( typeof content === 'undefined' || content == false){
+      content = '';
+    } else {
+      content = content;
+    }
+    return content;
+  }
+
+
+  function includeOffer(element, classe){
+
+    if('yes' === element.swg_button){
+      element.swg_button_text = verifyContent(element.swg_button_text);
+      $( oferta ).find('div.bt_assine .btn-offer-google').attr({'data-swg-sku': element.swg_button_text,});
+    } else {
+      $( oferta ).find('div.bt_assine span').remove();
+      $( oferta ).find('div.bt_assine .btn-offer-google').remove();
+    }
+
+  }  
+
+
+  function loadingDone(){
+    $('.loading').addClass('d-none');
+
+    var userAbrilLogged = AbrilLogin.getCookie('userAbrilLogged');
+
+    if( userAbrilLogged == '' ){
+      userAbrilLogged = 'Usuário';
+      $("#userValid").html( userAbrilLogged );
+      $("#userDeslogado").removeClass( "d-none" );
+      $("#primeiroAPoio").removeClass( "d-none" );
+      $("#renovaApoio").addClass( "d-none" );
+    }
+    else{
+      $("#userValid").html( userAbrilLogged );
+      $("#userLogado").removeClass( "d-none" );
+      $("#userDeslogado").addClass( "d-none" );
+      $("#primeiroAPoio").addClass( "d-none" );
+      $("#renovaApoio").removeClass( "d-none" );
+      $("#printEmail").text(AbrilLogin.getCookie('userAbrilLogged'));
+    }
+
+  }  
+
+  function clearASI(url_retorno) {
+    console.log("OPEN LOGIN");
+    var url    = assineUrl + 'portal/checkoutsimplificado!clean.action';
+    var iframe = $('iframe#asi_clean');
+
+    if( iframe.length === 0 ) {
+
+      iframe = $('<iframe />');
+      $("body").append(iframe);
+
+    }
+
+    iframe.attr({'src': url, 'id': 'asi_clean'}).on('load', function(e){
+      goToASI( assineUrl + 'portal/checkoutsimplificado!initLogin.action?Facebook=N&nocache=' + Math.floor(Date.now() / 1000), url_retorno );
+    });
+    iframe.css('display', 'none');
+
+  }  
+
+
+
+
+  function goToASI(url, urlRetorno, fullscreen) {
+
+    if ( "true" === fullscreen || true === fullscreen ) {
+      $('#piano_offer').addClass('fullscreen');
+    }
+
+    if( urlRetorno.indexOf('?paywall=access') !== -1 ){
+      urlRetorno = urlRetorno.replace('?paywall=access', '');
+    } else if( urlRetorno.indexOf('?paywall=offer') !== -1 ){
+      urlRetorno = urlRetorno.replace('?paywall=offer', '');
+    }
+
+    url = url + '&urlRetorno=' + urlRetorno;
+
+    var redirect = url;
+
+    var iframe = $('<iframe />');
+    iframe.attr({'src': redirect, 'id': 'asi_screen'});
+
+    $("#screenOffers").css({"display":"none"});
+
+    $("#screenLogin")
+    .html('')
+    .append(iframe)
+    .css({"display":"block"});
+    $('#screenLogin').css('height','500px');
+
+    $('header p.goback-button').removeClass('hidden');
+    $('header p.login-button').addClass('hidden');
+    $('header p.logout-button').addClass('hidden');
+    loadingDone();
+
+    if ( "true" === fullscreen || true === fullscreen ) {
+      $("HEADER").hide();
+
+    }
+
+  }
+
+
+  function openLogin(url_retorno) {
+    $("HEADER").removeClass('offer');
+    if( url_retorno.indexOf('?paywall=access') !== -1 ){
+      url_retorno = url_retorno.replace('?paywall=access', '');
+
+    } else if( url_retorno.indexOf('?paywall=offer') !== -1 ){
+      url_retorno = url_retorno.replace('?paywall=offer', '');
+
+    }
+    clearASI(url_retorno);
+  }
+
+  // codigo de ofertas componetização
+  function protionSwitcherInfo(element) {
+  const fullInfoText = element.getAttribute('data-full-info');
+    if (fullInfoText) {
+      const fullInfo = element.getElementsByClassName('new-paywall-promotion-full-info').item(0);
+      element.setAttribute('data-cursor', fullInfo.innerHTML ? 'zoom-in' : 'zoom-out');
+      fullInfo.innerHTML = fullInfo.innerHTML ? '' : fullInfoText;
+    }
+  };
+
+
+  function openOffers() {
+    $("HEADER").addClass('offer');
+    $("#screenOffers").css({"display":"block"});
+    $("#screenLogin").css({"display":"none"});
+
+    $('header p.goback-button').addClass('hidden');
+    $('header p.login-button').removeClass('hidden');
+    $('header p.logout-button').removeClass('hidden');
+
+    if (/iPhone/i.test(navigator.userAgent)) {
+      $("#screenOffers").css({"padding-bottom":"100px"});
+    }
+
+  }
+
+  function goToOffer(){
+    
+    let queryString = window.location.search;
+    let urlParams = new URLSearchParams(queryString);
+    urlRetornoLogin = urlParams.get('url-retorno');
+    urlParams.get('tipo_paywall') ? urlTipoPaywall = "&tipo_paywall=" + urlParams.get('tipo_paywall') : urlTipoPaywall = "";
+    urlParams.get('medium') ? urlUtmMedium = "&medium=" + urlParams.get('medium') : urlUtmMedium = "";
+    urlParams.get('campaign') ? urlUtmCampaigm = "&campaign=" + urlParams.get('campaign') : urlUtmCampaigm = "";
+    urlParams.get('source') ? urlUtmSource = "&source=" + urlParams.get('source') : urlUtmSource = "";
+    urlParams.get('origem') ? urlOrigem = "&origem=" + urlParams.get('origem') : urlOrigem = "";
+
+    AbrilLogin.sendMetricsGA( 'metric3', 'Paywall', 'Tela de ofertas', 'Assine pela tela de login' );
+
+    return window.location.href = "/ofertas/?+eventLabel=Assine pela tela de login&url-retorno="+ urlRetornoLogin + urlTipoPaywall + urlUtmMedium + urlUtmCampaigm + urlUtmSource + urlOrigem;
+  }
+
+
+  function listeners(){
+
+    window.addEventListener( "message",
+      function (e) {
+
+        if( e.data.action === 'BotaoAssineAgora'){
+          openOffers();
+
+            if( wp_paywall_vars.paywall_template != 1 ){
+            goToOffer();
+            }
+
+        }
+
+        if ('sendHeightDocument' === e.data.action) {
+          $('header').hide();
+          $('#asi_screen').css({'height':'100vh'});
+          document.querySelector('body').scrollTo(0,0);
+        }      
+
+      },
+      false);
+
+  }
+
+
+  return {
+    init: init,
+    openLogin: openLogin,
+    protionSwitcherInfo: protionSwitcherInfo,
+    loadingDone: loadingDone,
+    openOffers: openOffers,
+    goToASI: goToASI,
+
+  };
+})();
+
+
+AbrilOfertas.init(); 
+
+
+$( document ).ready(function() {
+
+  AbrilOfertas.loadingDone();
+
+  /* Botões */
+  $('#botEntreAqui').click(function(e){
+    AbrilLogin.sendMetricsGA( 'metric13', 'Paywall', 'Entrada na tela de Login', "Login pela oferta" );
+    AbrilOfertas.openLogin(window.location.href);
+    });
+
+  $('#botAssineJa').click(function(e){
+      AbrilOfertas.openOffers();
+    });
+
+  $( ".go-home" ).on( "click", function() {
+    location = location.origin+'/?source=paywall';
+  });
+
+  $('.btn-offer').each(function(index){
+    $(this).off().click(function(e){
+      var fullscreen = $(this).attr('data-fullscreen');
+      eventLabel = $(this).attr('data-resourcename');
+      if( typeof eventLabel != "undefined" && eventLabel != '' ){
+        obj = {
+          action: 'setEventLabel',
+          eventLabel: eventLabel
+        }
+        window.top.postMessage(obj, "*");
+
+        AbrilLogin.sendMetricsGA( 'metric3', 'Paywall', 'Entrada no Fluxo de Pagamento', eventLabel );
+
+        if( typeof eventLabel != "undefined" && eventLabel != '' ){
+          eventLabel = $(this).attr('data-resourcename');
+          AbrilLogin.sendMetricsGA( 'metric3', 'Paywall', 'Entrada no Fluxo de Pagamento', eventLabel );
+        }
+
+        if( "_blank" === $(this).attr('target') ){
+          var win = window.open($(this).attr('data-url') + '&urlRetorno=' + $(this).attr('data-url-retorno'), '_blank');
+          win.focus();
+        } else {
+          AbrilOfertas.goToASI($(this).attr('data-url'), $(this).attr('data-url-retorno'), fullscreen);
+
+          var heightscreen = $(window).height();
+          heightscreen = (fullscreen) ? heightscreen : heightscreen - 93;
+          $('#view-offer .content, #piano_offer').css({'width': '894px'});
+
+          if(window.document.body.clientWidth < 991) {
+            $('#view-offer .content, #piano_offer').css({'width': '100%', 'height': '100vh', 'margin-left': 0});
+          }
+
+      }
+    };
+  });
+  });
+
+  $('#botSair').click(function(e){
+    AbrilLogin.logoutPaywall();
+
+  });  
+
+  $('#renovarOferta').click(function(e){
+    e.preventDefault();
+    AbrilLogin.sendMetricsGA( 'metric3', 'Paywall', 'Adesão gratuita', $("#labelApio").val() + " - Tela de ofertas " );    
+    statusRenew = AbrilInterfaceMiddleware.renewSupport($("#urlRetornoApoioR").val());
+
+  }); 
+
+  $('.btn-offer-google').each(function(index){
+    $(this).off().click(function(e){
+      var swgSku = this.getAttribute('data-swg-sku');
+      var obj = {
+        action: 'openSWGBuyFlow',
+        value: swgSku
+      }
+      window.top.postMessage(obj,'*');
+    });
+  });
+
+  $('.login-link').click(function() {
+    window.onscroll = function () { window.scrollTo(); };
+    $('body').css('overflow','scroll');
+  });
+
+  $('.close-piano-notice').click(function() {
+    $('#piano_offer').css('display','none');
+    $('.piano-offer-overlay').css('display','none');
+    $('.paywall-notice').fadeOut();
+    document.querySelector('#piano_offer').style.pointerEvents = 'none'
+    $('body').addClass('enabledByPaywall').removeClass('disabledByPaywall');
+    // var obj = {action:"closePaywallNotice",  eventLabel: "Close Offer Contabilizada" }
+    // window.top.postMessage(obj, '*');
+  });  
+  
+  $('#botApoiar').click(function() {
+    //console.log("CLICOU APOIAR");
+
+    for (var i = 1; i < 4; i++) {
+      if($("#oferta_"+i).is(":checked")){
+        labelApoio = $("#oferta_"+i).attr( "data-label" );
+
+        AbrilLogin.sendMetricsGA( 'metric3', 'Paywall', 'Entrada no Fluxo de Pagamento', labelApoio );
+
+        return window.location.href = $("#oferta_"+i).val() + "?eventLabel="+labelApoio+"&url-retorno=" + $("#urlRetornoApoioN").val();
+      }
+      
+    }
+
+    $("#alertApoio").text("Escolha uma opção de Apoio!");
+    console.log("ESCOLHA UMA OFERTA !!!!!");
+
+
+  });  
+
+
+  $('.new-paywall-sign-in').click(function() {
+
+    let queryString = window.location.search;
+    let urlParams = new URLSearchParams(queryString);
+    urlRetornoLogin = urlParams.get('url-retorno');
+
+    if (!urlRetornoLogin) {
+      urlRetornoLogin = window.location.origin;
+    }
+
+    urlParams.get('tipo_paywall') ? urlTipoPaywall = "&tipo_paywall=" + urlParams.get('tipo_paywall') : urlTipoPaywall = "";
+    urlParams.get('medium') ? urlUtmMedium = "&medium=" + urlParams.get('medium') : urlUtmMedium = "";
+    urlParams.get('campaign') ? urlUtmCampaigm = "&campaign=" + urlParams.get('campaign') : urlUtmCampaigm = "";
+    urlParams.get('source') ? urlUtmSource = "&source=" + urlParams.get('source') : urlUtmSource = "";
+    urlParams.get('origem') ? urlOrigem = "&origem=" + urlParams.get('origem') : urlOrigem = "";
+    eventLabel = "&eventLabel=Login pela tela de ofertas";
+
+    return window.location.href = "/login/?&url-retorno=" + urlRetornoLogin + eventLabel + urlTipoPaywall + urlUtmMedium + urlUtmCampaigm + urlUtmSource + urlOrigem;
+  });
+
+  const whiteListParameters = ["origem", "source", "medium", "campaign", "content", "term", "fbclid", "gclid", "msclkid"];
+
+  const fixUrlParameter = (urlString, parameter, value, paywall = false) => {
+    const oldUrl = paywall ? urlString.split(', "')[1].replace('")', '') : urlString;
+    const newUrl = new URL(oldUrl);
+    newUrl.searchParams.set(parameter, value);
+    return paywall ? urlString.replace(oldUrl, newUrl.href) : newUrl.href;
+  };
+
+  const setCookiePaywall = (key, value) => {
+    document.cookie = `${key}=${value};`;
+  };
+
+  const assineCheckCookie = (parentElement) => {
+    const cookieObj = {};
+    let result = parentElement.getAttribute('href');
+
+    decodeURIComponent(document.cookie).split(';').forEach((cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      if (whiteListParameters.indexOf(key) !== -1) {
+        cookieObj[key] = value;
+      }
+    });
+    
+    const urlParameters = window.location.href.split('?')[1];
+    if (urlParameters) {
+      urlParameters.split('&').forEach((parameter) => {
+        const [key, value] = parameter.trim().split('=');
+        cookieObj[key] = value;
+      });
+    }
+
+    Object.keys(cookieObj).forEach((key) => {
+      setCookiePaywall(key, cookieObj[key]);
+      result = fixUrlParameter(result, key, cookieObj[key], true);
+    });
+
+    parentElement.setAttribute('href', result);
+  };
+
+  const getAssineButtons = () => {
+    if (window.location.href.indexOf('/ofertas/') !== -1) {
+      Object.values(document.getElementsByClassName('new-paywall-promotion-sign-abril-button')).forEach(({ parentElement }) => {
+        if (parentElement && parentElement.tagName === 'A') {
+          assineCheckCookie(parentElement);
+        }
+      });
+    }
+  };
+
+  window.onload = getAssineButtons;
+  // termina codigo de ofertas
+
+
+});
+
+if (
+  window.location.href.indexOf("/login/") < 0 
+  && window.location.href.indexOf("/login-vivo-fibra/") < 0 
+  && window.location.href.indexOf("/ofertas/") < 0 
+) {
+  execute_chartbeat();
+}

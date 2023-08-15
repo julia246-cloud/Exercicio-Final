@@ -1,0 +1,476 @@
+var AbrilFirebaseInterface = (function() {
+
+    let userName = " ";
+
+    const showError = (error, close = false) => {
+        document.getElementById("isLoginCheckMsgText").innerHTML = error
+        document.getElementById("isLoginCheck").style.display = "block"
+
+        console.log(close);
+
+        if(close) {
+            console.log("closing");
+            setTimeout(() => {
+                document.getElementById("isLoginCheck").style.display = "none"
+            }, 5000);
+        }
+    }
+
+    const showMessage = (message) => {
+        document.getElementById("isLoginCheckMsgText").innerHTML = message
+        document.getElementById("isLoginCheck").style.display = "block"
+    }
+
+    const removeError = () => {
+        document.getElementById("isLoginCheck").style.display = "none"
+    }
+
+    const removeMessage = () => {
+        document.getElementById("isLoginCheck").style.display = "none"
+    }
+
+    const setLegacyCookies = async (data) => {
+        const hash = data.hash
+        const codes = data.cods
+        // AbrilLogin.login(hash, false)
+        // checkPermission(null, data)
+        createCookieProductsUser(codes)
+        await AbrilInterfaceMiddleware.setMetadataProdcts(hash)
+        console.log("setLegacyCookies")
+        // reloadPageAfterLogin()
+    }
+
+    function checkMiddlewarePermission(hash = null, tipoConteudo = null){
+        console.log("tipoConteudo " + tipoConteudo);
+
+        if (!hash) {
+            console.log("Usuário deslogado em conteúdo: " + tipoConteudo + " " + AbrilLogin.isUnicId);
+        }
+        console.log("Checando permissao de usuário logado em conteúdo: " + tipoConteudo);
+
+        let postUrl  = `https://authp.abril.com.br/paywall/validateUserAccessApi.php`
+        postUrl += `?assineEnv=${assine_environment}`;
+        postUrl += `&tipo_paywall=${wp_paywall_vars.tipo_paywall}`;
+        postUrl += `&codTipoIdentificador=assineId`;
+        postUrl += `&cods=${logged_paywall.join(",")}`;
+        postUrl += `&hash=${hash}`;
+        if( AbrilLogin.isUnicId == true ){
+            postUrl += `&tidAmp=${AbrilLogin.getUnicId()}`;
+        }
+        postUrl += `&page_url=${location.href}`;
+
+        var jqxhr = $.post(postUrl, function() {
+        })
+        .done(function(data) {
+
+            //console.log("CHECANDO PAYWALL DA NOVA FUNCAO")
+            //console.log({data})
+
+
+            if ( data.loggedOut !== "undefined" ) {
+                if ( data.loggedOut == "deslogar" ) {
+                    logoutPaywall(false);
+                }
+            }
+
+            if(data.codsUser !== ""){
+                createCookieProductsUser(data.codsUser);
+            }
+            if( data.data.p.showPayWall === true){
+                sendPermission(false, "Bloqueio autenticado");
+                return;
+            }
+            if( data.data.p.showPayWall === false){
+                console.log("TGA AUTOLOGIN ABRIL ACCOUNTED" );
+                sendPermission(true);
+                return;
+            }
+
+            return;
+        })
+        .fail(function() {
+
+            return;
+        })
+
+
+    }
+
+    function checkPermission(tipoConteudo = null, loggedUser){
+        console.log("Checando permissao do usuario");
+        console.log("para liberar conteudo " + tipoConteudo);
+
+        console.log("CHECANDO PERMISSAO")
+        console.log({loggedUser})
+
+
+        if(loggedUser){
+            console.log("Usuário logado");
+            console.log({loggedUser});
+            return checkMiddlewarePermission(loggedUser.hash, tipoConteudo);
+        }
+
+        if(tipoConteudo == "closed"){
+            label = "Bloqueio fechado";
+        }
+        if(tipoConteudo == "accounted"){
+            label = "Bloqueio contabilizado";
+        }
+        return sendPermission(false, label);
+    }
+
+    function sendPermission(permission, label = ""){
+        getPermission(permission, label);
+    }
+
+
+    const createCookieProductsUser = (codes) => {
+        var d = '';
+        d = new Date();
+        d.setTime(d.getTime() + (365*24*60*60*1000));
+        AbrilLogin.setCookie( 'AbrilProductsUser', codes, d );
+        AbrilLogin.hideButtons(codes);
+    }
+
+    const reloadPageAfterLogin = () => {
+        console.log("reloadPageAfterLogin");
+        let eventLabel = "Login Efetuado"
+
+        const queryString = window.location.search;
+        const queryParams = queryString.split("&");
+        if(typeof queryParams.find(param => param.includes("redirect_uri")) !== "undefined"){
+            return ;
+        }
+
+        let rawQueryParam = queryParams.find(param => param.includes("url-retorno"));
+        let urlRetornoLogin = window.location.origin;
+
+        if(typeof rawQueryParam !== "undefined"){
+            const queryParam = rawQueryParam.split("=");
+            urlRetornoLogin = decodeURIComponent(queryParam[1]);
+        }
+        console.log("RETORNAR PARA " + urlRetornoLogin);
+
+        if(urlRetornoLogin.match(/\/ofertas/)){
+            eventLabel = "Login pela tela de ofertas";
+        }
+        if(window.location.href.indexOf('pagina-de-login') > 0){
+            eventLabel = "Bloqueio contabilizado - AMP";
+        }
+        AbrilLogin.sendMetricsGA( 'metric2', 'Paywall', 'Login Efetuado', eventLabel );
+        console.log("VOLTA PARA A ORIGEM  !");
+
+        if(document.getElementById("pageLoginVivoFibra") !== null){
+            $("#isLoginCheck").css("display", "none");
+            return;
+        }
+
+        if(window.location.href.indexOf('login') < 0){
+            return window.location.href = urlRetornoLogin;
+        }
+        return window.location.href = urlRetornoLogin;
+    }
+
+    function updateScreen(user){
+        console.log("UPDATESCREEN", user)
+        console.log("logg: updateScreen " + Math.random());
+        if($("#header-user-exp-ctrl").length > 0) {
+            $(".hot-topics-user-exp").show();
+        }
+
+        if (user && user.nomPessoa ) {
+          if( $('.user-Name').length > 0 ){
+            let inicialNome = user.nomPessoa.split(' ')[0].substr(0,1) + user.nomPessoa.split(' ')[1].substr(0,1);
+            $('.user-Name').each(function(i) {
+              $(this)[0].innerHTML = inicialNome;
+            });
+            $('.user-Name')[0].innerHTML = inicialNome;
+           }
+
+
+                console.log("logg: logado");
+                AbrilFirebaseInterface.userName = user.nomPessoa;
+
+                $('body').addClass('logged-block');
+                $("#login, #assinemenu").hide();
+                $('.sidebarMenu .assine-btn').hide();
+                $("#logout, #logout2").css('display','block');
+
+                if( user === true && typeof user.nomPessoa === 'undefined'){
+                    console.log("Falhou no nome");
+                    $("#logintop").css('display','block');
+                    $("#logout").css('display','none');
+                }else{
+                    if(document.getElementById("pageLoginVivoFibra") !== null){
+                        let projetos = user.listaProjeto;
+                        if ($("#javinculado").val() === "sim"){
+                            $("#loginVivo").css("display", "none");
+                            $(".buscaVivo").css('display','none');
+                            $(".userAtivo").css('display','block');
+                            return;
+                        }else{
+                            $(".buscaVivo").css('display','block');
+                            $(".userAtivo").css('display','none');
+                            $("#loginVivo").css("display", "none");
+                            if($("#vincular").val()==='sim'){
+                                $(".buscaVivo").css('display','none');
+                                $(".userAtivo").css('display','block');
+                                return;
+                            }
+                            $("#vincular").val("sim");
+
+                            if($("#cpf").val() !== "" && $("#celular").val() !== ""){
+                                console.log("auto submit bind");
+                                $(".buscaVivo").submit();
+                                $(".buscaVivo").css('display','none');
+                                $("#isLoginCheckMsgText").text("");
+                                $("#isLoginCheck").css("display", "none");
+                                return;
+                            }
+                        }
+                        $("#email").val(user.email);
+                        $("#isLoginCheckMsgText").text("");
+                        $("#isLoginCheck").css("display", "none");
+                        return;
+                    }
+                    $("body").addClass("exp-logado");
+                    user.nomPessoaFirstName = user.nomPessoa.split(' ').slice(0, 1).join(' ');
+                    $("#userName").text('Olá, ' + user.nomPessoa);
+                    $(".userNameExp").text(user.nomPessoaFirstName);
+                    $('#userNameExpToggled').text(user.nomPessoa);
+                    $("#userExpEmail").text(user.email);
+                    $("#logintop").css('display','none');
+                    $("#logout").css('display','block');
+                    $("#user-exp-login").css('display','none');
+                    if($("#header-user-exp-ctrl").length) {
+                        $("#header-user-exp-ctrl").show();
+                        $(".assinante").hide();
+                    }
+                }
+        } else {
+                console.log("logg: não logado");
+                $('body').removeClass('logged-block');
+                $(".buscaVivo").css('display','block');
+                $("#userName").text('');
+                $(".userNameExp").text('');
+                $('.sidebarMenu .assine-btn').css('display','block');
+                $("#logout2").hide();
+                $("#login, #assinemenu").css('display','block');
+                $("#logintop").css('display','block');
+                $("#logout").css('display','none');
+        }
+
+        $("#isLoginCheckMsgText").text("");
+        $("#isLoginCheck").css("display", "none");
+            AbrilFirebaseInterface.hideButtons();
+            AbrilFirebaseInterface.checkPassei(user);
+    }
+
+    function checkPassei(user){
+        if(typeof ajax_passei !== 'undefined'){
+            if (user && user.nomPessoa ) {
+                $(".nome-usuario").text(user.nomPessoa);
+                let projetos = user.listaProjeto;
+                if (projetos.indexOf(1203) > -1) {
+                    $(".passei_loading").css("display", "none")
+                    $("#passei-titulo-select-curso").css('display', 'none');
+                    $("#loadlinks .passei_loading").css('display', 'block');
+                    Passei.linkPassei(user.crm);
+                    Passei.linkRedacao(user.crm);
+                    $("#logado-com-acesso").css("display", "block");
+                    return;
+                } else {
+                    $(".passei_loading").css("display", "none")
+                    $("#logado-sem-acesso").css("display", "block");
+                    return;
+                }
+            }
+            $(".passei_loading").css("display", "none");
+            $("#deslogado").css("display", "block");
+            return;
+        }
+    }
+
+    function notificacoes(data){
+        if (data.avatar) {
+            $('.user-avatar-name').css({'display':'none'});
+            $('.user-avatar').attr('src', data.avatar);
+        } else {
+            $('.user-avatar-name').css({'display':'inline-block'})
+            $('.user-avatar').css({'display':'none'});
+        }
+
+        if(typeof data.visualizado !=="undefined"){
+            if(data.visualizado === true){
+                $("#user-exp-ctrl").attr("data-visualizado", true);
+                if($(".user-alert-icon img").length > 0){
+                    $(".user-alert-icon img").css("display", "none");
+                }
+                if($(".user-alert-icon").length > 0){
+                    $(".user-alert-icon").css("display", "none");
+                }
+            }else{
+                $("#user-exp-ctrl").attr("data-visualizado", false);
+                if($(".user-alert-icon img").length > 0){
+                    $(".user-alert-icon img").css("display", "inline-block");
+                }
+                if($(".user-alert-icon").length > 0){
+                    $(".user-alert-icon").css("display", "inline-block");
+                }
+            }
+        }
+
+        let htmlMsg = '';
+        let perfilUrl = 'https://perfil.abril.com.br';
+        if(assine_environment[0]==='sandbox'){
+            perfilUrl = 'https://gutenberg.perfil.abril.com.br';
+        }
+
+        $('.user-exp-account a').attr('href', perfilUrl);
+
+        if(typeof data.notifications === 'undefined'){
+            $("#user-exp-alerts-wrapper").css({'visibility':'hidden'});
+            $(".user-exp-detail").css({'border-radius':'0 0 4px 4px'});
+            return;
+        }
+
+        if(data.notifications === null){
+            $("#user-exp-alerts-wrapper").css({'visibility':'hidden'});
+            $(".user-exp-detail").css({'border-radius':'0 0 4px 4px'});
+            return;
+        }
+
+        if(data.notifications.length >= 1){
+
+            let total = data.notifications.length;
+
+            data.notifications.forEach((msg, i) => {
+                let titulo = msg.titulo? msg.titulo : msg.codTipoAlerta;
+                let bg = msg.cor? ' style="background-color: '+msg.cor+'"': '';
+                if(i<=1){
+                    htmlMsg += '<div class="user-exp-row">';
+                        htmlMsg += '<div class="info">';
+                            htmlMsg += '<span class="user-alert-icon">'+svgAlertMsg(msg.cor)+'</span>';
+                            htmlMsg += '<p class="user-alert-title"><mark'+bg+'>'+titulo+'</mark></p>';
+                        htmlMsg += '</div>';
+                        if(msg.mensagem != null){
+                            htmlMsg += '<div class="textlink">' + convertHtml(msg.mensagem) + '</div>';
+                        }
+                    htmlMsg += '</div>';
+                }
+                if(i==2){
+                    htmlMsg += '<div class="user-exp-row"><div class="info-more"><span class="user-alert-icon">' + svgAlert();
+                    htmlMsg += '</span><p class="user-alert-title">Você tem <span class="user-alert-qt">+ alertas</span>. ';
+                    htmlMsg += '<a href="'+perfilUrl+'/mural/" target="blank">Saiba mais...</a></p></div></div>';
+                }
+            });
+        }
+        $("#user-exp-alerts-wrapper").html(htmlMsg);
+        return;
+    }
+
+    function convertHtml(text){
+        text = text.replaceAll(/&lt;/g,'<');
+        text = text.replaceAll(/&gt;/g,'>');
+        text = text.replaceAll(/&amp;/g,'&');
+        text = text.replaceAll(/&quot;/g,'"');
+        return text;
+    }
+
+    function svgAlertMsg(color){
+        return '<svg id="Icon_feather-alert-circle" data-name="Icon feather-alert-circle" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">' +
+          '<path id="Caminho_1104" data-name="Caminho 1104" d="M10.5,1.5A9,9,0,0,1,14,18.792,9,9,0,0,1,7,2.208,8.944,8.944,0,0,1,10.5,1.5Zm0,16.364A7.364,7.364,0,1,0,3.136,10.5,7.372,7.372,0,0,0,10.5,17.864Z" transform="translate(-1.5 -1.5)" fill="'+color+'"/>' +
+          '<path id="Caminho_1105" data-name="Caminho 1105" d="M17.318,15.409a.818.818,0,0,1-.818-.818V11.318a.818.818,0,1,1,1.636,0v3.273A.818.818,0,0,1,17.318,15.409Z" transform="translate(-8.318 -5.591)" fill="'+color+'"/>' +
+          '<path id="Elipse_3_-_Contorno" data-name="Elipse 3 - Contorno" d="M.318-.5A.818.818,0,1,1-.5.318.819.819,0,0,1,.318-.5Z" transform="translate(8.682 11.955)" fill="'+color+'"/>' +
+          '</svg>';
+
+    }
+
+    function svgAlert(){
+        return '<svg xmlns="http://www.w3.org/2000/svg" width="20.339" height="17.224" viewBox="0 0 20.339 17.224">' +
+          '<g id="noun-notification-5183795" transform="translate(-148.865 -143.288)">' +
+            '<path id="Caminho_8844" data-name="Caminho 8844" d="M361.089,314.007a6,6,0,0,1-1.942-3.863,9.242,9.242,0,0,1-.059-1.806,6.014,6.014,0,0,0-.643-3.579,5.477,5.477,0,0,0-2.836-2.258v-.743a1.683,1.683,0,1,0-3.366,0v.685a5.171,5.171,0,0,0-2.895,2.291,7.446,7.446,0,0,0-.793,4.027c0,.533,0,1.036-.053,1.534a5.366,5.366,0,0,1-1.738,3.713.615.615,0,0,0,.357,1.115H351.2a2.79,2.79,0,0,0,5.444,0h3.93a.664.664,0,0,0,.72-.38.614.614,0,0,0-.211-.736Zm-7.615-12.251a.453.453,0,1,1,.906,0v.469a5.24,5.24,0,0,0-.537-.03H353.8c-.109,0-.217.006-.325.013v-.453Zm.453,14.311a1.564,1.564,0,0,1-1.435-.946h2.868a1.563,1.563,0,0,1-1.435.946Zm-5.386-2.175a7.253,7.253,0,0,0,1.186-3.477c.055-.556.056-1.112.059-1.651a6.409,6.409,0,0,1,.619-3.4,3.9,3.9,0,0,1,2.576-1.85l.008,0a4.246,4.246,0,0,1,.82-.087h.034a4.229,4.229,0,0,1,3.56,1.984,5.01,5.01,0,0,1,.456,2.89,10.227,10.227,0,0,0,.076,2.051,8.49,8.49,0,0,0,1.336,3.543H348.54Z" transform="translate(-194.736 -156.786)" fill="#464646"/>' +
+            '<path id="Caminho_8846" data-name="Caminho 8846" d="M.977.119a.614.614,0,1,0-.725.992,5.776,5.776,0,0,1,2.29,3.668.615.615,0,0,0,.6.507.623.623,0,0,0,.107-.009.615.615,0,0,0,.5-.713A7,7,0,0,0,.978.118Z" transform="translate(164.103 145.912) rotate(16)" fill="#464646"/>' +
+            '<path id="Caminho_8849" data-name="Caminho 8849" d="M.977,5.167a.614.614,0,1,1-.725-.992A5.777,5.777,0,0,0,2.542.507.615.615,0,0,1,3.147,0a.626.626,0,0,1,.108.009.615.615,0,0,1,.5.713A7,7,0,0,1,.978,5.168Z" transform="translate(155.424 150.993) rotate(164)" fill="#464646"/>' +
+            '<path id="Caminho_8847" data-name="Caminho 8847" d="M.7.085A.44.44,0,1,0,.18.8,4.136,4.136,0,0,1,1.82,3.421a.441.441,0,0,0,.433.363.45.45,0,0,0,.077-.007.44.44,0,0,0,.357-.511A5.009,5.009,0,0,0,.7.084Z" transform="translate(166.615 145.912) rotate(16)" fill="#464646"/>' +
+            '<path id="Caminho_8848" data-name="Caminho 8848" d="M.7,3.7A.44.44,0,1,1,.18,2.99,4.137,4.137,0,0,0,1.821.363.441.441,0,0,1,2.253,0,.45.45,0,0,1,2.33.007a.441.441,0,0,1,.357.511A5.011,5.011,0,0,1,.7,3.7Z" transform="translate(152.498 149.551) rotate(164)" fill="#464646"/>' +
+          '</g>' +
+        '</svg>';
+    }
+
+    function hiddeOfferWp(){
+        $('body').removeClass('enabledByPaywall').removeClass('disabledByPaywall');
+        $('body').removeClass('enabledByPaywall').removeClass('menuOpen');
+        $('.piano-offer-overlay').css({'display':'none'});
+        $('#piano_offer').hide();
+    }
+
+    function getCookie(cname, cpar) {
+        var name = cname + "=";
+        var ca = document.cookie.split(';');
+        for(var i = 0; i <ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0)==' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0 && cpar == undefined) {
+                return c.substring(name.length,c.length);
+            }
+            if (c.indexOf(name) == 0 && cpar) {
+                var arr = [];
+                str = c.substring(name.length,c.length);
+                str = str.split(":");
+                for(var j=0; j<str.length; j++) {
+                    a = str[j].split("=");
+                    arr[a[0]] = a[1];
+                }
+
+                if(arr[cpar]) {
+                    return arr[cpar];
+                }
+            }
+        }
+        return "";
+    }
+
+    function hideButtons(){
+        exibe = true
+        $('.search-area a').css({'display':'none'});
+        var user_products = AbrilFirebaseInterface.getCookie('AbrilProductsUser');
+        var user_products = user_products.split(",");
+        var site_products = logged_paywall[0].split(",");
+        for(var i=0; i<site_products.length; i++) {
+            for(var j=0; j<user_products.length; j++) {
+                if(site_products[i].toString() === user_products[j].toString()) {
+                    exibe = false;
+                }
+            }
+        }
+
+        if (exibe === true) {
+            $('.search-area a').css({'display':'inline-block','pointer-events':'all'});
+            $('body:not(.login-assine) .mobile-assine').addClass('on');
+            $('body').removeClass('logged');
+        } else {
+            $('.search-area a').css({'display':'none'});
+            $('body').addClass('logged');
+        }
+    }
+
+    return {
+        showError,
+        removeError,
+        setLegacyCookies,
+        reloadPageAfterLogin,
+        updateScreen,
+        notificacoes,
+        hideButtons,
+        getCookie,
+        showMessage,
+        removeMessage,
+        checkPermission,
+        hiddeOfferWp,
+        checkPassei,
+        userName
+    }
+})();

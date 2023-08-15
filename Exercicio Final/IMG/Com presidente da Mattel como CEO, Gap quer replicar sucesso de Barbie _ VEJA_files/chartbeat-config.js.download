@@ -1,0 +1,77 @@
+
+function getCookie(cname, cpar) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i = 0; i <ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0 && cpar == undefined) {
+            return c.substring(name.length,c.length);
+        }
+        if (c.indexOf(name) == 0 && cpar) {
+            var arr = [];
+            str = c.substring(name.length,c.length);
+            str = str.split(":");
+            for(var j=0; j<str.length; j++) {
+                a = str[j].split("=");
+                arr[a[0]] = a[1];
+            }
+
+            if(arr[cpar]) {
+                return arr[cpar];
+            }
+        }
+    }
+    return "";
+}
+
+function execute_chartbeat() {
+    var _sf_async_config = window._sf_async_config = (window._sf_async_config || {});
+    _sf_async_config.uid = chartbeat_params.uid; 
+    _sf_async_config.domain = chartbeat_params.domain;
+    _sf_async_config.useCanonical = true;
+    _sf_async_config.useCanonicalDomain = true;
+    _sf_async_config.sections = chartbeat_params.categories; 
+    _sf_async_config.authors = chartbeat_params.post_author; 
+
+    var _cbq = window._cbq = (window._cbq || []);
+    var userType = 'anon';
+
+    if (getCookie('AbrilUser') !== '' && typeof(logged_paywall) !== 'undefined') {
+        let productsUser = getCookie('AbrilProductsUser');
+        productsUser = productsUser.split(',')
+        userType = 'lgdin';
+        if (productsUser.length > 0) {
+            productsUser.forEach(function (current, arrayIndex) {
+                if (logged_paywall[0].includes(current) && current !== '') {
+                    userType = 'paid';
+                }
+            });
+        }
+
+    };
+
+    _cbq.push(['_acct', userType]);
+    function loadChartbeat() {
+        var e = document.createElement('script');
+        var n = document.getElementsByTagName('script')[0];
+        e.type = 'text/javascript';
+        e.async = true;
+        e.src = '//static.chartbeat.com/js/chartbeat.js';
+        n.parentNode.insertBefore(e, n);
+        
+        if ( "/" === document.location.pathname ) {
+            e.src = '//static.chartbeat.com/js/chartbeat_mab.js';
+            n.parentNode.appendChild(e);
+        }
+    }
+    loadChartbeat();
+};
+
+window.onload = function() {
+    if (typeof(wp_paywall_vars) == 'undefined') {
+        execute_chartbeat();
+    }
+}

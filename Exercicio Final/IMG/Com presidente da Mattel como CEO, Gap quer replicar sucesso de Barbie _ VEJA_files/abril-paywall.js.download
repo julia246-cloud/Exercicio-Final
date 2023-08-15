@@ -1,0 +1,609 @@
+var AbrilPaywall = (function () {
+
+  var ShowPaywall = false;
+  var tipoConteudo = null;
+  var openGoogle = false;
+  var openContent = false;
+  var displayModalPayawall = false;
+  var showNotice = false;
+
+  function init(flowPaywall = true) {
+
+    if( !wp_paywall_vars.tipo_paywall || wp_paywall_vars.tipo_paywall =="opened" ){
+      if (wp_paywall_vars.paywall_template !== "1") {
+        openContentbyParam();
+      }
+      return;
+    }
+    console.log("PAYWALL INIT PARANS");
+  }
+
+
+  function receiveAutoLoginSwg(){
+    console.log("ENTRA NO FLUXO NORMAL");
+    getTipoConteudo(wp_paywall_vars.tipo_paywall);
+  }
+
+  function showOfferWpGlogal( label, pageIframe = "", pageClose = false, utm = "" ){
+    console.log("SHOW PAYWALL GLOBAL");
+    const scrollHeightToBlock = 500;
+
+    $(document).ready( () => {
+      $(document).scroll( function() {
+        var scroll = $(document).scrollTop();
+        if(scroll >= scrollHeightToBlock && AbrilPaywall.displayModalPayawall == false && AbrilPaywall.showNotice == false) {
+          displayModalPayawall = true;
+          AbrilPaywall.displayModalPayawall = true;
+          console.log('mostra paywall');
+          $('body').addClass('paywallBlocked');
+          showNewPaywall();
+          AbrilLogin.sendMetricsGA( 'metric1', 'Paywall', 'Bloqueio de Leitura', label );
+          AbrilLogin.eventLabel = label;
+
+          if( wp_paywall_vars.re_order == 'true' && wp_paywall_vars.tipo_paywall == 'accounted' ){
+            AbrilLogin.sendMetricsGA( 'metric1', 'Rewarded', 'Bloqueio de Leitura', label );
+          }
+
+          /* corrige logo SVG no Safari */
+          var svg = document.getElementsByTagName('svg');
+          Object.values(svg).forEach((item) => {
+            item.style.display = 'none';
+            setTimeout(() => {
+              item.style.display = 'initial';
+            }, 0);
+          });
+          /* corrige logo SVG no Safari */
+
+        }
+      });
+    });
+
+  }
+
+
+   function showOfferWpGlogalInstantBlock( label, pageIframe = "", pageClose = false, utm = "" ){
+    console.log("SHOW PAYWALL GLOBAL INSTANTANEO");
+    $(document).ready( () => {
+      if(displayModalPayawall == false) {
+        displayModalPayawall = true;
+        console.log('mostra paywall');
+        $('body').addClass('paywallBlocked');
+        showNewPaywall();
+        AbrilLogin.sendMetricsGA( 'metric1', 'Paywall', 'Bloqueio de Leitura', label );
+        AbrilLogin.eventLabel = label;
+        if( wp_paywall_vars.re_order == 'true' && wp_paywall_vars.tipo_paywall == 'accounted' ){
+          AbrilLogin.sendMetricsGA( 'metric1', 'Rewarded', 'Bloqueio de Leitura', label );
+        }
+
+        /* corrige logo SVG no Safari */
+        var svg = document.getElementsByTagName('svg');
+        Object.values(svg).forEach((item) => {
+          item.style.display = 'none';
+          setTimeout(() => {
+            item.style.display = 'initial';
+          }, 0);
+        });
+      }
+    });
+
+  }
+
+
+  function showOfferWpSupport( label, pageIframe = "", pageClose = false, utm = "" ){
+    console.log("SHOW PAYWALL APOIO");
+    $(document).ready( () => {
+      $(document).scroll( function() {
+        var scroll = $(document).scrollTop();
+        if(scroll >= 900 && displayModalPayawall == false) {
+          displayModalPayawall = true;
+          $(".paywall-overlay").css("display", "block");
+          $("body").css("overflow", "hidden");
+          setTimeout(() => {
+            $(".paywall-overlay").css("transform", "translateY(0px)");
+          }, 1);
+          AbrilLogin.sendMetricsGA( 'metric1', 'Paywall', 'Bloqueio de Leitura', label );
+          AbrilLogin.eventLabel = label;
+          if( wp_paywall_vars.re_order == 'true' && wp_paywall_vars.tipo_paywall == 'accounted' ){
+            AbrilLogin.sendMetricsGA( 'metric1', 'Rewarded', 'Bloqueio de Leitura', label );
+          }
+        }
+      });
+    });
+  }
+
+
+  function showOfferWp( label, pageIframe = "", pageClose = false, utm = "", rewarded=false ){
+
+    if( getPartner() ){
+      return;
+    }
+
+    AbrilPaywall.ShowPaywall = true;
+
+    if (wp_paywall_vars.paywall_template !== "1") {
+      if( openContentbyParam() == true ){
+        return console.log("Abrir conteúdo");
+      }
+    }
+
+    if(AbrilLogin.getCookie("session") && wp_paywall_vars.tipo_paywall=="closed"){
+      label = "Bloqueio autenticado";
+    }
+    
+    AbrilLogin.sendMetricsGA( 'metric1', 'Paywall', 'Bloqueio de leitura - OnLoad', label );
+    AbrilLogin.eventLabel = label;
+
+    if(wp_paywall_vars.tipo_paywall != 'closed' && wp_paywall_vars.tipo_paywall != 'opened'){
+      if(wp_paywall_vars.rewarded_init === true){
+        AbrilRewarded.init();
+      }
+    }
+
+    if( wp_paywall_vars.paywall_template == "2" ){
+      return showOfferWpSupport( label );
+    }
+
+    if( wp_paywall_vars.paywall_template == "3" ){
+      return showOfferWpGlogal( label );
+    }
+
+    if( wp_paywall_vars.paywall_template == "4" ){
+      return showOfferWpGlogalInstantBlock( label );
+    }
+
+    console.log("SHOW PAYWALL");
+    if(  pageIframe != "login"){
+      AbrilLogin.sendMetricsGA( 'metric1', 'Paywall', 'Bloqueio de Leitura', label );
+      if( wp_paywall_vars.re_order == 'true' && wp_paywall_vars.tipo_paywall == 'accounted' ){
+        AbrilLogin.sendMetricsGA( 'metric1', 'Rewarded', 'Bloqueio de Leitura', label );
+      }
+      var obj = {
+        action: 'setEventLabel',
+        eventLabel: label
+      }
+      window.top.postMessage(obj,'*'); 
+      
+    }
+
+
+    if(utm != ""){
+      utm = "&" + utm;
+    }
+
+    try{
+      abrAd.remove();
+    } catch (e) {
+      //AbrilLogin.sendMetricsGA( '' , 'Paywall Debug', 'Erro', 'Debug - Falha ao executar abrAd.remove()' );
+    }
+
+    var close_button = '';
+
+    if(pageClose){
+      var barra = ( pageIframe === "" ) ? '' : '/';
+      close_button = barra + 'close_button';
+    }
+
+    if ($('#piano_offer').length === 0) {
+      var div = $('<div></div>');
+      div
+      .attr('id', 'piano_offer')
+      .css('width', '100%')
+      .hide()
+      .appendTo('BODY');
+    }
+
+    $('#piano_offer').removeAttr('style');
+    $('#piano_offer').show();
+    $('#piano_offer DIV').show();
+
+    var screenWidth = $(window).width();
+    var screenHeight = $(window).height();
+
+    if ( $('.piano-offer-overlay').length === 0 ) {
+      var pianoOfferOverlay = $('<div />').attr({'class':'piano-offer-overlay'});
+      $(pianoOfferOverlay).insertBefore("#piano_offer");
+    }
+
+    $('.piano-offer-overlay').css('top',$(window).scrollTop()).css({'width':screenWidth, 'display':'block'});
+    $('.piano-offer-overlay').height(screenHeight);
+
+    if(window.document.body.clientWidth < 991) {
+      document.querySelector('#piano_offer').style.width = '100%'
+      document.querySelector('#piano_offer').style.height = '100vh'
+    }
+
+    $("#piano_offer").html(`<div class='tp-container-inner' style='height:100%;'><iframe src='/template-paywall/${pageIframe}${close_button}?v=2.0.19${utm}' width='100%' height='100%'></iframe></div>`);
+
+    document.querySelector('#piano_offer').style.pointerEvents = 'auto'
+
+    $('body').removeClass('enabledByPaywall').addClass('disabledByPaywall');
+
+    var obj;
+    let action = 'showOffer';
+
+    if( wp_paywall_vars.tipo_paywall === "accounted" && pageIframe === "login"){
+      action = 'LoginInitWP';
+      eventLabel = label;
+    }
+
+  }
+
+  function getPartner(){
+    let queryString = window.location.search;
+    let urlParams = new URLSearchParams(queryString);
+    if( urlParams.get('utm_source') == "terra.com.br" && urlParams.get('utm_medium') == "referral" && urlParams.get('utm_campaing') == "home_parceiros"){
+      return true;
+    }
+    return false;
+  }
+
+  function showContabilizadoJs( label , meterData ){
+
+    let msgContabilizado = "";
+    let msgContabilizadoMobile = "";
+    let remainingViews = meterData.restantes;
+
+    if (remainingViews == 1) {
+      msgContabilizado = "1 conteúdo gratuito restante neste mês.";
+      msgContabilizadoMobile = "1 conteúdo restante.";
+    }
+    else if( remainingViews <= 0 ){
+      msgContabilizado = "Este é seu último conteúdo gratuito neste mês.";
+      msgContabilizadoMobile = "Último conteúdo restante";
+    }
+    else {
+      msgContabilizado = (remainingViews) + " conteúdos gratuitos restantes neste mês.";
+      msgContabilizadoMobile = (remainingViews) + " conteúdos restantes.";
+    }
+
+    $( "body" ).append( `
+      <div class="piano-notice">
+      <div id="mobile" class="mensagem">
+      <span>${msgContabilizadoMobile}</span>
+      <a id="piano-notice-button-mobile"><span>Assine agora</span> »</a>
+      </div>
+
+      <div id="desktop" class="mensagem">
+      <span>${msgContabilizado}</span>
+      <a id="piano-notice-button"><span>Assine e tenha acesso ilimitado</span> »</a>
+      </div>
+
+      <div class="fechaCOntabilizadoRodape">
+      <div class="blcAss">
+      <span class="login">Já é assinante? <a id="login">Entre aqui</a>.</span>
+      <span id="close-piano-notice">x</span>
+      </div>
+      </div>
+      </div>
+      ` );
+
+    utmMarca = "";
+    if( wp_paywall_vars.paywall_brand ){
+        utmMarca = wp_paywall_vars.paywall_brand;
+    }
+    
+    utmDevice = "desktop";
+    if( window.screen.width < 991 ){
+      utmDevice = "mobile";
+    }
+    
+    $('#piano-notice-button, #piano-notice-button-mobile').click(function(e){
+      
+      if (wp_paywall_vars.paywall_template == "1") {
+        showOfferWp( 'Ofertas pelo aviso de leitura', '', true );
+      }else{
+        AbrilLogin.sendMetricsGA( 'metric1', 'Paywall', 'Tela de ofertas', 'Ofertas pelo aviso de leitura' );
+        AbrilLogin.sendMetricsGA( '', 'Fluxo de assinatura', 'A-Assine', '10-BannerFooter' );
+        window.location.href = "/ofertas/?eventLabel=Ofertas pelo aviso de leitura&medium=pw&campaign=pw_"+utmMarca+"_aviso_site_"+utmDevice+"&source=paywall&origem=pw_"+utmMarca+"_aviso&url-retorno="+window.location.href ;
+      }
+
+    });
+
+    $('.fechaCOntabilizadoRodape #login').click(function(e){
+
+      AbrilLogin.sendMetricsGA( 'metric13', 'Paywall', 'Entrada na tela de Login', 'Login pelo aviso de leitura' );
+      if (wp_paywall_vars.paywall_template == "1") 
+      {
+        var obj = {
+          action: 'setEventLabel',
+          eventLabel: 'Login pelo aviso de leitura'
+        }
+        window.top.postMessage(obj,'*');         
+        showOfferWp( 'Login pelo aviso de leitura', 'login', true );
+      }else{
+        window.location.href = "/login/?eventLabel=Login pelo aviso de leitura&medium=pw&campaign=pw_"+utmMarca+"_aviso_site_"+utmDevice+"&source=paywall&origem=pw_"+utmMarca+"_aviso&url-retorno="+window.location.href ;
+      }
+
+    });
+
+    $('#close-piano-notice').click(function(e){
+      $(".piano-notice").css("display","none");
+    });
+
+
+
+  }
+
+  function openContentbyParam() {
+
+    var query = location.search.substring(1);
+    var vars = query.split("&");
+    var utmS = false;
+    var utmC = false;
+
+    for ( var i = 0; i < vars.length; i++ ) {
+
+      if ( 'oferta=true' == vars[i] || 'paywall=offer' == vars[i] ) {
+        if (wp_paywall_vars.paywall_template == "3") {
+          console.log('passei aqi');
+          return window.location.href = "/ofertas/?url-retorno="+window.location.href+"&eventLabel=Bloqueio por parametro";
+        }
+        // return showOfferWp( "Bloqueio por parametro" );
+      }
+
+      if ( 'paywall=access' == vars[i] ) {
+        if (wp_paywall_vars.paywall_template == "3") {
+          return window.location.href = "/login/?url-retorno="+window.location.href+"&eventLabel=Bloqueio por parametro";
+        }
+      }
+
+      if ( 'googlenews=true' == vars[i] ) {
+        return true;
+      }     
+      if ( 'source=panel' == vars[i] ) {
+        utmS = true;
+      }
+      if ( 'campaign=google_news' == vars[i] ) {
+        utmC = true;
+      } 
+
+      if( utmS && utmC ){
+        console.log("!!!!!ABRIR MATERIA!!!!!!");
+        return true;
+      }   
+
+    }
+
+    return false;
+
+  }
+
+  function signOut(){
+    AbrilLogin.signOut();
+  }
+
+  function ofertaClickBloqueio(utm = ""){
+    eventLabel = AbrilLogin.setEventLabel();
+    ofertaClick(eventLabel, utm);
+  }
+
+  function ofertaClick(eventLabel = "", utm = ""){
+    if( eventLabel !== "" ){
+      AbrilLogin.sendMetricsGA( 'metric1', 'Paywall', 'Tela de ofertas', eventLabel );
+    }
+    return window.location.href = "/ofertas/?eventLabel="+eventLabel+"&"+"utm="+utm+"&url-retorno="+window.location.href;
+  };
+
+  function comprarOfertaBloqueio(productName, link) {
+    eventLabelString = AbrilLogin.setEventLabel();
+    comprarOferta(productName, link);
+  }
+
+  function comprarOferta(ofertaNome = "", link){
+
+    let originString = window.location.href;
+    let queryString = window.location.search;
+    let urlParams = new URLSearchParams(queryString);
+
+    if( originString.indexOf("/ofertas/") >= 0 && urlParams.get('source') != "paywall"){
+      console.log("Interrompe GA");
+      return window.location.href = link;
+    } else {
+
+      gaTipoPaywall = wp_paywall_vars.tipo_paywall;
+      gaEventLabelString = " ";
+      gaAcao = "Tela de ofertas";
+
+      if( ofertaNome != "" ){
+        gaAcao = "Entrada no Fluxo de Pagamento";
+      }
+
+      if(  wp_paywall_vars.tipo_paywall =="opened" ){
+        gaTipoPaywall = urlParams.get('tipo_paywall');
+        gaEventLabel = urlParams.get('eventLabel');
+
+        if( gaEventLabel ){
+          gaEventLabelString = " - " + gaEventLabel;
+        }
+      }
+
+      if (!urlParams.get('eventLabel')) {
+        gaEventLabelString = AbrilLogin.setEventLabel();
+      } else {
+        gaEventLabelString = urlParams.get('eventLabel');
+      }
+      let divisor = (ofertaNome == '') ? '' : " - ";
+      let eventLabel = ofertaNome + divisor + gaEventLabelString;
+
+      AbrilLogin.sendMetricsGA( 'metric3', 'Paywall', gaAcao, eventLabel );
+      
+      return window.location.href = link + "&eventLabel=" + eventLabel;
+    }
+
+    
+
+  }
+
+  $('.new-paywall-sign-in').click(function(e){
+    AbrilLogin.sendMetricsGA( 'metric1', 'Paywall', 'Entrada na tela de Login', 'Login pela tela de ofertas' );
+  });
+
+  $('#ofertasByLogin, #ofertasAssineAgora').click(function(e){
+    AbrilLogin.sendMetricsGA( 'metric3', 'Paywall', 'Tela de ofertas', 'Assine pela tela de login' );
+  });
+  
+  // funcao que abre o bloqueio do paywall
+  var showNewPaywallExecuteOnce = true;
+  const showNewPaywall = () => {
+  if (showNewPaywallExecuteOnce) {
+    showNewPaywallExecuteOnce = false;
+    AbrilCustomDimension.sendNavigationData();
+    const ip_abril = document.getElementById('ip_abril');
+    let section = document.getElementsByClassName("content")[0];
+    let firstParagraph;
+
+    var skippableClass = document.getElementById("ip_abril");
+    if (wp_paywall_vars.paywall_template == 4) {
+      skippableClass = document.getElementById("ip_abril_instant");
+      var contentToRemove  = document.getElementsByTagName('section')[0];
+    }
+
+    if ($("body").hasClass("single-special_post")) {
+      if (skippableClass.classList.contains('skippable') == false) {
+        const section = document.getElementsByClassName("content");
+        $('.content').each(function( index ) {
+          if (index > 0) {
+            $('.content').remove();
+          }
+        });
+      } else {
+          var sectionDossie = document.getElementsByTagName("article")[0];
+          Object.values(sectionDossie.children).forEach((element) => {
+            if( wp_paywall_vars.paywall_template == "4" ) {
+              element.style.display = 'none';
+            } else {
+              if (element.tagName == 'SECTION') {
+                element.style.display = 'none';
+              }
+            }
+          });
+      }
+    }
+
+    if (AbrilLogin.getCookie('session') == '') {
+      $('#injected-paywall_info').css({'display':'block'});
+      $('#injected-paywall_info_not_permission').css({'display':'none'});
+    } else {
+      $('#injected-paywall_info').css({'display':'none'});
+    }
+
+    Object.values(section.children).forEach((element) => {
+      if (firstParagraph) {
+        if (skippableClass.classList.contains('skippable') == false) {
+          element.remove();
+        } else {
+          if (!$("body").hasClass("single-special_post")) {
+            element.style.display = 'none'
+          }
+        }
+      } else if (element.tagName === "P") {
+        firstParagraph = element;
+        const { innerText } = element;
+        if (firstParagraph.innerText.length > 300) {
+          if (skippableClass.classList.contains('skippable') == false) {
+            firstParagraph.innerText = innerText.substring(0, 300) + '...';
+          }
+        }
+      }
+    });
+
+    if ($("body").hasClass("single-receitas")) {
+      firstParagraph = $('.content-container')[0];
+      $('.widget-box').remove();
+    }
+
+    section.style.minHeight = 'auto';
+    const article = document.getElementsByTagName('article')[0];
+
+    scrollHeightToBlock = article.clientHeight;
+    article.style = `height: ${article.clientHeight + 40}px;overflow: hidden;`;
+    article.setAttribute('class', article.className + " no-ads");
+
+    const scrolledPage = ((window.pageYOffset !== undefined) ? window.pageYOffset : (document.documentElement || document.body.parentNode || document.body).scrollTop);
+    const firstParagraphLineHeight = 28;
+    
+    if( wp_paywall_vars.paywall_template == "4" ) {
+      if (document.getElementById('outbrain_widget_0') !== null) {
+        document.getElementById('outbrain_widget_0').remove();
+      }
+      // document.getElementById('outbrain_widget_1').setAttribute('data-src', injectedPaywall.url_outbrain);
+      // document.getElementById('outbrain_widget_1').setAttribute('data-ob-template', injectedPaywall.brand_option_name);
+      
+      const ip_abril_instant = document.getElementById('ip_abril_instant');
+      const newHeightContentPost = document.getElementsByClassName('article post')[0];
+      ip_abril_instant.style.display = 'initial';
+      ip_abril_instant.style.top = document.getElementsByTagName('header')[0].clientHeight+'px';
+
+      if ($("body").hasClass("single-special_post")) {
+        ip_abril_instant.style.top = '161px';
+        const newHeightContentPostDossie = document.getElementsByClassName('special-post')[0];
+        newHeightContentPostDossie.style.height = '1335px';
+      } else {
+        if (skippableClass.classList.contains('skippable') == false) {
+          newHeightContentPost.style.height = '1352px';
+        } else {
+          document.getElementsByTagName('article')[0].style.height = '1300px';
+          contentToRemove.style.height = '1300px';
+          contentToRemove.style.display = 'none';
+        }
+      }
+
+      if( screen.width <= 480 ) {
+        var mobileHeight = document.getElementsByTagName('header')[0].clientHeight;
+        ip_abril_instant.style.top = mobileHeight+'px';
+        if (skippableClass.classList.contains('skippable') == false) {
+          $('footer').remove();
+        } else {
+          $('footer')[0].style.display = 'none';
+        }
+      }
+
+      if (skippableClass.classList.contains('skippable') == false) {
+        ip_abril_instant.style.height = '1352px';
+      }
+    }
+
+    if( wp_paywall_vars.paywall_template == "3" ){
+      ip_abril.style.top = `${firstParagraph.getBoundingClientRect().top + scrolledPage + (firstParagraphLineHeight * 3) + 39}px`;
+      ip_abril.style.display = 'initial';
+      document.getElementsByTagName('footer')[0].style.display = 'none';
+
+      if (skippableClass.classList.contains('skippable') == false) {
+        firstParagraph.style.marginBottom = "0px";
+        firstParagraph.outerHTML = `${firstParagraph.outerHTML}<p><a href='/ofertas?url-retorno=${window.location.href}'>Para acessar na integra clique aqui</a></p>`;
+      }
+      setTimeout(() => {
+        ip_abril.style.transform = "translateY(0px)";
+      }, 1);
+    }
+  
+  }
+};
+
+
+
+  return {
+    logoutPaywall: signOut,
+    init: init,
+    showOfferWp: showOfferWp,
+    showContabilizadoJs: showContabilizadoJs,
+    comprarOferta: comprarOferta,
+    ofertaClickBloqueio: ofertaClickBloqueio,
+    comprarOfertaBloqueio: comprarOfertaBloqueio,
+    ofertaClick: ofertaClick,
+    openContent: openContent,
+    ShowPaywall: ShowPaywall,
+    displayModalPayawall: displayModalPayawall,
+    showNotice: showNotice
+  };
+})();
+
+function signOut(){
+ signOut2();
+}
+
+function showOfferWp(label, pageIframe = "", pageClose = false, utm = ""){
+ return AbrilPaywall.showOfferWp(label, pageIframe, pageClose, utm );
+}
+
+AbrilPaywall.init();

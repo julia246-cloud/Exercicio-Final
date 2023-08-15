@@ -1,0 +1,518 @@
+var AbrilInterfaceMiddleware = (function () {
+
+
+	function checkPermission(tipoConteudo = null){
+		console.log("Checando permissao do usuario");
+		console.log("para liberar conteudo " + tipoConteudo);
+
+		// if(AbrilLogin.hash != ""){
+		// 	console.log({AbrilLogin})
+		// 	return checkMiddlewarePermission(AbrilLogin.hash, tipoConteudo);
+		// }
+
+		if(AbrilLogin.hash != ''){
+			console.log("ABRIL LOGIN FALSE")
+			return checkMiddlewarePermission(AbrilLogin.hash, tipoConteudo);
+		}
+
+		if(tipoConteudo == "closed"){
+			label = "Bloqueio fechado";
+		}
+		if(tipoConteudo == "accounted"){
+			label = "Bloqueio contabilizado";
+		}
+		console.log("label " + label);
+		console.log("SEND PERMISSION FALSE");
+		return sendPermission(false, label);
+
+	}
+
+	function sendPermission(permission, label = ""){
+		//console.log("ENVIOU PERMISSION PARA LOGIN " + permission);
+		//AbrilLogin.receivePermission(permission, label);
+		//getPermission(permission, label);
+		return false;
+	}
+
+
+	function checkMiddlewarePermission(hash = null, tipoConteudo = null){
+		console.log("tipoConteudo " + tipoConteudo);
+
+		if (!hash) {
+			console.log("Usuário deslogado em conteúdo: " + tipoConteudo + " " + AbrilLogin.isUnicId);
+		}
+
+		console.log("Checando permissao de usuário logado em conteúdo: " + tipoConteudo);
+
+		AbrilLogin.isGaLoaded(function () {
+
+			let postUrl  = `https://authp.abril.com.br/paywall/validateUserAccessApi.php`
+			postUrl += `?assineEnv=${assine_environment}`;
+			postUrl += `&tipo_paywall=${wp_paywall_vars.tipo_paywall}`;
+			postUrl += `&codTipoIdentificador=assineId`;
+			postUrl += `&cods=${logged_paywall.join(",")}`;
+			postUrl += `&hash=${hash}`;
+			if( AbrilLogin.isUnicId == true ){
+				postUrl += `&tidAmp=${AbrilLogin.getUnicId()}`;
+			}
+			postUrl += `&page_url=${location.href}`;
+
+			var jqxhr = $.post(postUrl, function() {
+			})
+			.done(function(data) {
+
+				console.log("Validate");
+				console.log(data);
+				console.log(data.data.p.showPayWall);
+
+				if ( data.loggedOut !== "undefined" ) {
+					if ( data.loggedOut == "deslogar" ) {
+						logoutPaywall(false);
+					}
+				}
+
+				if(data.codsUser !== ""){
+					createCookieProductsUser(data.codsUser);
+				}
+				if( data.data.p.showPayWall === true){
+					sendPermission(false, "Bloqueio autenticado");
+					return;
+				}					
+				if( data.data.p.showPayWall === false){
+					console.log("TGA AUTOLOGIN ABRIL ACCOUNTED" );
+					sendPermission(true);
+					return;
+				}
+
+				return;
+			})
+			.fail(function() {
+
+				return;
+			})
+		});
+
+	}	
+
+
+	async function checkAccountedViews(){
+
+		console.log("CHECK ACCOUNTED VIEWS");
+
+		AbrilLogin.isGaLoaded( async function(){
+
+			console.log(assine_environment, wp_paywall_vars, paywall_brand, logged_paywall );
+
+			let postUrl  = `https://authp.abril.com.br/paywall/validateUserAccessApi.php`
+			postUrl += `?assineEnv=${assine_environment}`;
+			postUrl += `&tipo_paywall=${wp_paywall_vars.tipo_paywall}`;
+			postUrl += `&metringMarca=${paywall_brand}`;
+			postUrl += `&codTipoIdentificador=gaId`;
+			//console.log({AbrilLogin})
+			if( AbrilLogin.isUnicId == true ){
+				postUrl += `&codIdentificador=${AbrilLogin.getUnicId()}`;
+			}
+			postUrl += `&cods=${logged_paywall.join(",")}`;
+			postUrl += `&hash=${AbrilLogin.getAbrUserCrypt()}`;
+			if( AbrilLogin.isUnicId == true ) {
+				postUrl += `&tidAmp=${AbrilLogin.getUnicId()}`;
+			}
+			postUrl += `&page_url=${location.href}`;
+			console.log("CHECK MIDDLEWARE VIEWS");
+			await $.ajax({
+				url: postUrl,
+				type: 'post',
+				dataType: 'json',
+				async: true,
+				success: async function(data) {
+
+					if( wp_paywall_vars.dados_de_contabilizacao < 3 ){
+						if ( data.loggedOut !== "undefined" ) {
+							if ( data.loggedOut == "desolgar" ) {
+								logoutPaywall(false);
+							}
+						}
+
+						if (data.data.p.showPayWall === true) {
+							console.log("Bloqueio contabilizado - checar Login");
+							 let eventLabelBloqueio = "Bloqueio contabilizado"
+							if (AbrilLogin.getCookie('session') !== '') {
+								eventLabelBloqueio = "Bloqueio autenticado";
+							}
+
+							return AbrilPaywall.showOfferWp( eventLabelBloqueio );
+						}
+
+
+						if( parseInt(data.visitadas) > 0 ){
+							let accountedMeterData = { 'restantes': data.data.p.materiasrestantes, 'visitada': data.foivisitada };
+							return AbrilLogin.receiveAccounted(accountedMeterData);
+						}
+					}
+
+				},
+			});
+		},"validate");
+
+		return;
+	}
+
+	function checkAccountedViewsPrivate(){
+
+		let postUrl  = `https://authp.abril.com.br/paywall/validateUserAccessApi.php`
+		postUrl += `?assineEnv=${assine_environment}`;
+		postUrl += `&tipo_paywall=${wp_paywall_vars.tipo_paywall}`;
+		postUrl += `&metringMarca=${paywall_brand}`;
+		postUrl += `&codTipoIdentificador=gaId`;
+		postUrl += `&cods=${logged_paywall.join(",")}`;
+		postUrl += `&hash=${AbrilLogin.getAbrUserCrypt()}`;
+		postUrl += `&page_url=${location.href}`;
+
+		$.ajax({
+			url: postUrl,
+			type: 'post',
+			dataType: 'json',
+			async: false,
+			success: function(data) {
+
+				if (data.data.p.showPayWall === true) {
+					return AbrilLogin.receivePermissionPrivate(false, "Bloqueio contabilizado");
+
+				}
+				return AbrilLogin.receivePermissionPrivate(true);
+
+			},
+		});
+
+	}
+
+
+	function tryAutoLoginGoogle(hashGoogle){
+
+		if(!hashGoogle){
+			return;
+		}
+		let postUrl  = `https://authp.abril.com.br/paywall/getUserSwg.php?hashGoogle=${hashGoogle}`;
+
+		$.ajax({
+			url: postUrl,
+			type: 'get',
+			dataType: 'json',
+			async: false,
+			success: function(data) {
+				AbrilLogin.login(data.hash,false);
+				AbrilInterfaceMiddleware.checkPermission(data.hash,"closed");
+			},
+		});
+
+	}	
+
+
+	function setUserHashAnalytics() {
+		var c_name = "userHashAnalytics";
+		var cookie = AbrilLogin.getCookie(c_name);
+
+		if( !cookie ) {
+
+			var d = new Date();
+			d.setTime(d.getTime() + (1*24*60*60*1000));
+
+			var expires = "expires="+ d.toUTCString();
+
+			var request = $.ajax({
+
+				url: "https://authp.abril.com.br/setUserHashAnalytics.php",
+				method: "POST",
+				async: true,
+				complete: function(data) {
+					document.cookie = c_name + "=" + data.responseText + ";" + expires + ";domain=.abril.com.br;path=/";
+				},
+				data: {
+					abrilUserCryptHash: AbrilLogin.getAbrUserCrypt()
+				}
+			});
+		}
+	}	
+
+
+	function createCookieProductsUser(codes){
+		console.log("CRIOU CODS USER " + codes);
+		var d = '';
+		d = new Date(); 
+		d.setTime(d.getTime() + (365*24*60*60*1000));
+		AbrilLogin.setCookie( 'AbrilProductsUser', codes, d );
+		AbrilLogin.hideButtons();
+	}	
+
+	function getUserAbril(){
+		console.log("111" + AbrilLogin.getAbrUserCrypt());
+		$.ajax({
+			url: "https://authp.abril.com.br/convertHashAssine.php?assineEnv=",
+			method: "POST",
+			async: false,
+			complete: function(data) {
+				console.log("222" + data.responseJSON);
+				data = data.responseJSON;
+				sendUserAbril(data);
+			},
+			data: {
+				abrilUserCryptHash: AbrilLogin.getAbrUserCrypt()
+			}
+		});
+	}
+
+	function sendUserAbril(data){
+		AbrilLogin.receiveUserAbril(data);
+	}
+
+	function setMetadataProdcts(hash){
+		console.log("SetMetadataProdcts " + hash);
+		$.ajax({
+			url: "https://authp.abril.com.br/paywall/syncProdutosApi.php?codTipoIdentificador=assineId&codIdentificador=" + hash.trim(),
+			method: "POST",
+			async: false,
+			data: {}
+		});
+	}	
+
+
+	function relateTails() {
+		console.log("SYNCI");
+		let MinimoVal = 0;
+		let cookieAmp = AbrilLogin.getCookie('amp-access') ? AbrilLogin.getCookie('amp-access') : AbrilLogin.getCookie('_sp_id');
+		
+		let cookieAbril = AbrilLogin.getCookie('AbrilUser');
+
+		if(cookieAmp){
+			MinimoVal ++;
+		}
+
+		let cookieGa = "";
+		if( AbrilLogin.isUnicId == true ){
+			cookieGa = AbrilLogin.getUnicId();
+			if(cookieGa){
+				MinimoVal ++;
+			}
+		}
+
+		if(cookieAbril){
+			MinimoVal ++;
+		}
+		console.log("MinimoVal:  " + MinimoVal);
+		if( MinimoVal < 2){
+			console.log("Rastro insuficiente para relacionar: " + MinimoVal);
+			return;
+		}
+
+		let middlewarePayload = "";
+		if( AbrilLogin.isUnicId == true ){
+			middlewarePayload = {
+				"data": {
+					"coduser": {
+						"readerId": cookieAmp,
+						"gaId": cookieGa,
+						"assineId": cookieAbril
+					}
+				},
+				"assineEnv": assine_environment
+			}			
+
+		}else{
+			middlewarePayload = {
+				"data": {
+					"coduser": {
+						"readerId": cookieAmp,
+						"assineId": cookieAbril
+					}
+				},
+				"assineEnv": assine_environment
+			}			
+
+		}		
+
+
+
+		$.ajax({
+			url: 'https://authp.abril.com.br/paywall/accounted/syncReaderIds.php',
+			type: 'post',
+			data: middlewarePayload,
+			async: true,
+			complete: function (data) {
+				var d = '';
+				d = new Date();
+				d.setTime(d.getTime() + (1000 * 60 * 60 * 24 * 60));
+				AbrilLogin.setCookie('gaId_' + paywall_brand, AbrilLogin.getUnicId(), d);
+			},
+		});
+	}
+
+
+	function relateTailsAmp() {
+		console.log("SYNCI AMP");
+		let MinimoVal = 0;
+		let cookieAmp = AbrilLogin.getCookie('amp-access') ? AbrilLogin.getCookie('amp-access') : AbrilLogin.getCookie('_sp_id');
+		let cookieAbril = AbrilLogin.getCookie('AbrilUser');
+
+		if(cookieAmp){
+			MinimoVal ++;
+		}
+		if(cookieAbril){
+			MinimoVal ++;
+		}
+		console.log("MinimoVal:  " + MinimoVal);
+		if( MinimoVal < 2){
+			console.log("Rastro insuficiente para relacionar: " + MinimoVal);
+			return;
+		}
+
+		const middlewarePayload = {
+			"data": {
+				"coduser": {
+					"readerId": cookieAmp,
+					"assineId": cookieAbril
+				}
+			},
+			"assineEnv": assine_environment
+		}
+
+		$.ajax({
+			url: 'https://authp.abril.com.br/paywall/accounted/syncReaderIds.php',
+			type: 'post',
+			data: middlewarePayload,
+			async: true,
+			complete: function (data) {
+				pluralSync = true;
+			},
+		});
+	}	
+
+
+	function loginAmp() {
+		console.log("LOGIN AMP");
+		
+		var urlParams = new URLSearchParams(window.location.search);
+		var isGoogleCDN = window.location.href.indexOf('pagina-de-login-cdn') > 0;
+		var reader_id = ( isGoogleCDN ) ? urlParams.get("ampReaderId") : getReaderId();
+
+		var jqxhr = $.post("https://authp.abril.com.br/paywall/syncReaderId.php", { headerId: reader_id, userHash: AbrilLogin.getAbrUserCrypt(), assineEnv: assine_environment }, function () {
+
+		})
+		.done(function (data) {
+			
+			console.log("====== AMP - LOGIN ========");
+			console.log(data);
+			if (data.codStatus === "SU") {
+				if ( isGoogleCDN ) {
+					var url = urlParams.get("redirect_uri") + "#access_token=" + AbrilLogin.getCookie("userCodAssine") + "&token_type=bearer" + "&state=" + urlParams.get("state");
+					window.location = url;
+				} else {
+					singularSync = true;
+				}
+			} else {
+				return alert("Falha no sistema de autenticação AMP");
+				loginAMP();
+			}
+		})
+		.fail(function () {
+			return;
+		})
+
+	}		
+
+	function renewSupport(urlRetorno = ""){
+		
+		let middlewarePayload = {
+			"hash": AbrilLogin.hash
+		};
+
+		$.ajax({
+			url: 'https://authp.abril.com.br/paywall/confirmaApoio.php',
+			type: 'get',
+			data: middlewarePayload,
+			async: true,
+			complete: (data) => {
+				data = data.responseJSON;
+				
+				if( data.codStatus == "SU"){
+					return window.location.href = urlRetorno ;
+				}
+				return $("#msgR").text(data.dscMensagem) ;
+
+			},
+		});
+	}
+
+	function returnContent() {
+		var skippableClass = $('#ip_abril');
+		if (wp_paywall_vars.paywall_template == 4) {
+			skippableClass = $('#ip_abril_instant');
+		}
+		
+		if (AbrilLogin.eventLabel != '') {
+			AbrilLogin.sendMetricsGA( '', 'Paywall', ' Desbloqueio pelo usuário', AbrilLogin.eventLabel )
+		}
+
+		skippableClass.hide();
+
+		if (!$("body").hasClass("single-special_post")) {
+			document.getElementsByTagName('section')[0].style.display = 'block';
+			document.getElementsByTagName('article')[0].style.height = 'auto';
+			document.getElementsByTagName('section')[0].style.height = 'auto';
+			Object.values(document.getElementsByClassName("content")[0].children).forEach((element) => {
+				element.style.display = 'block'
+			});
+		}
+
+		if ($("body").hasClass("single-special_post")) {
+			document.getElementsByTagName('article')[0].style.display = 'block';
+			document.getElementsByClassName('special-post')[0].style.height = 'auto';
+			var sectionDossie = document.getElementsByTagName("article")[0];
+			Object.values(sectionDossie.children).forEach((element, i) => {
+				if (element.classList.contains('post')) {
+					element.style.display = 'flex';	
+				} else {
+					element.style.display = 'initial';
+				}
+				
+			});
+		}
+		document.getElementsByTagName('footer')[0].style.display = 'block';
+	}
+
+	function clearAccounted() {
+		let postUrl  = 'https://authp.abril.com.br/paywall/accounted/clearaccounted.php';
+		if (parseInt(wp_paywall_vars.dados_de_contabilizacao) > 2){
+			postUrl = "https://us-central1-abril-id-testes-1528223718961.cloudfunctions.net/addMessageSkp/clearMetering";
+			if( 'sandbox' === assine_environment[0] ){
+				postUrl = "https://us-central1-abril-id-homolog.cloudfunctions.net/addMessageSkp/clearMetering";
+			}
+		}
+
+		$.ajax({
+			url: postUrl,
+			type: 'post',
+			data: { "codTipoIdentificador" : "gaId", "action" : "clear", "rid" : AbrilLogin.getUnicId(), "marca" : `${paywall_brand}` }
+		})
+		.done((data) => {
+			AbrilInterfaceMiddleware.returnContent();
+		});
+	}
+
+	return {
+		checkPermission: checkPermission,
+		setMetadataProdcts: setMetadataProdcts,
+		checkAccountedViews: checkAccountedViews,
+		relateTails: relateTails,
+		setUserHashAnalytics: setUserHashAnalytics,
+		getUserAbril: getUserAbril,
+		tryAutoLoginGoogle: tryAutoLoginGoogle,
+		relateTailsAmp: relateTailsAmp,
+		loginAmp: loginAmp,
+		checkAccountedViewsPrivate: checkAccountedViewsPrivate,
+		renewSupport: renewSupport,
+		clearAccounted: clearAccounted,
+		returnContent: returnContent
+	};
+
+
+})();

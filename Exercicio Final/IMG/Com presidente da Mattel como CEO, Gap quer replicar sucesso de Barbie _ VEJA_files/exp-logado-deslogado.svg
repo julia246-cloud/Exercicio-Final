@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 25 25">
+  <g id="Grupo_6653" data-name="Grupo 6653" transform="translate(-172 -80)">
+    <g id="Grupo_6601" data-name="Grupo 6601" transform="translate(48 80)">
+      <g id="account_circle_black_24dp" transform="translate(124.051)">
+        <g id="Grupo_6559" data-name="Grupo 6559">
+          <rect id="Retângulo_3474" data-name="Retângulo 3474" width="25" height="25" transform="translate(-0.051)" fill="none"/>
+        </g>
+        <g id="Grupo_6560" data-name="Grupo 6560" transform="translate(2 2)">
+          <circle id="Elipse_15" data-name="Elipse 15" cx="8.5" cy="8.5" r="8.5" transform="translate(1.949 2)" fill="#fff"/>
+          <path id="Caminho_8868" data-name="Caminho 8868" d="M12.475,2A10.475,10.475,0,1,0,22.949,12.475,10.478,10.478,0,0,0,12.475,2Zm0,4.19A3.666,3.666,0,1,1,8.808,9.856,3.67,3.67,0,0,1,12.475,6.19Zm0,14.664a8.388,8.388,0,0,1-6.431-3.017,10.424,10.424,0,0,1,12.863,0A8.388,8.388,0,0,1,12.475,20.854Z" transform="translate(-2 -2)" fill="#707070"/>
+        </g>
+      </g>
+      <g id="Caminho_1089" data-name="Caminho 1089" transform="translate(125 1)" fill="none">
+        <path d="M11.5,0A11.5,11.5,0,1,1,0,11.5,11.5,11.5,0,0,1,11.5,0Z" stroke="none"/>
+        <path d="M 11.5 1.5 C 5.985979080200195 1.5 1.5 5.985979080200195 1.5 11.5 C 1.5 17.01401901245117 5.985979080200195 21.5 11.5 21.5 C 17.01401901245117 21.5 21.5 17.01401901245117 21.5 11.5 C 21.5 5.985979080200195 17.01401901245117 1.5 11.5 1.5 M 11.5 0 C 17.85128021240234 0 23 5.14872932434082 23 11.5 C 23 17.85128021240234 17.85128021240234 23 11.5 23 C 5.148719787597656 23 0 17.85128021240234 0 11.5 C 0 5.14872932434082 5.148719787597656 0 11.5 0 Z" stroke="none" fill="#a7a7a7"/>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,204 @@
+window.addEventListener('load', () => {
+  const selec_gener = document.getElementById("selec_gener");
+  if(selec_gener === null) {
+    return false;
+  }
+  searchListBooks();
+  selec_gener.addEventListener("change", searchListBooks);
+});
+
+function searchListBooks()
+{
+   idGender = document.getElementById("selec_gener").value;
+   let url = location.origin;
+   let ajax = new XMLHttpRequest();
+
+   ajax.open("POST", url+"/wp-json/owt/v1/filter-search-books", true);
+   ajax.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+   ajax.send("idGender="+idGender);
+   ajax.onreadystatechange = function() {
+     if (ajax.readyState === 4 && ajax.status === 200) {
+       let data  = ajax.responseText;
+       let obj   = JSON.parse(data);
+       let i = 0;
+       let readMore = 1;
+
+       while (0 <  obj[i].title.length) {
+         let cape = obj[i].cape;
+         let posi = obj[i].posi;
+         let title = obj[i].title;
+         let author = obj[i].author;
+         let linkPurchaseBook = obj[i].linkPurchaseBook;
+         let positionABook = obj[i].positionABook+"° lugar";
+         let publisherBook = obj[i].publisherBook;
+         let semanConsecABook = obj[i].semanConsecABook;
+         let semanListABook = obj[i].semanListABook;
+         let sinopseBook = obj[i].sinopseBook;
+         let readMore_ =  "read-more-"+readMore;
+         let sinopseBookShort;
+         let read_more_sinopse;
+         posi = posi+1;
+
+         if ('sim' === semanConsecABook) {
+          semanListABook = semanListABook+' (não consecutivas)';
+         }
+
+         if (0 === i) {
+          document.querySelector(".books-list .cards .row").innerHTML = "";
+         }
+
+         let fatherAll = document.querySelector(".books-list .cards .row");
+         let divFatherAll = document.createElement("div");
+         divFatherAll.setAttribute('class','col-s-12 col-l-4');
+         fatherAll.appendChild(divFatherAll);
+
+         let divBooks = document.createElement("div");
+         divBooks.setAttribute('class','books');
+         divFatherAll.appendChild(divBooks);
+
+         let divRowBooks = document.createElement("div");
+         divRowBooks.setAttribute('class','row');
+         divBooks.appendChild(divRowBooks);
+
+         let divFather = document.createElement("div");
+         divFather.setAttribute('class','col-l-6 col-s-6');
+         divRowBooks.appendChild(divFather);
+
+         let divPosition = document.createElement("div");
+         divPosition.setAttribute('class','position');
+         position = document.createTextNode(posi);
+         divFather.appendChild(divPosition);
+         divPosition.appendChild(position);
+
+         let img = document.createElement("img");
+         img.setAttribute('class','media');
+         img.setAttribute('src',cape);
+         divFather.appendChild(img);
+
+         if (null !== linkPurchaseBook) {
+         let aPurchase = document.createElement("a");
+         aPurchase.setAttribute('href',linkPurchaseBook);
+         aPurchase.setAttribute('target','_blank');
+         divFather.appendChild(aPurchase);
+
+         let spanPurchase = document.createElement("span");
+         spanPurchase.setAttribute('class','btn-purchase');
+         aPurchase.appendChild(spanPurchase);
+
+         let imgPurchase = document.createElement("img");
+         let urlIcon = 'http://'+location.hostname+"/wp-content/themes/abril-master2/plugins/abril-lista-livros/assets/img/cart_icon.svg";
+         imgPurchase.setAttribute('class', 'icon-cart');
+         imgPurchase.setAttribute('src', urlIcon);
+         spanPurchase.appendChild(imgPurchase);
+
+         let spanTextPurchase = document.createElement("span");
+         spanTextDivsor = document.createTextNode('|');
+         spanText = document.createTextNode('Comprar');
+         spanPurchase.appendChild(spanTextDivsor);
+         spanPurchase.appendChild(spanTextPurchase);
+         spanTextPurchase.appendChild(spanText);
+       }
+
+         let divFatherLast = document.createElement("div");
+         divFatherLast.setAttribute('class','col-l-6 col-s-6');
+         divRowBooks.appendChild(divFatherLast);
+
+         let titleH2 = document.createElement("h2");
+         titleH2.setAttribute('class','titulo');
+         textTitleH2 = document.createTextNode(title);
+         divFatherLast.appendChild(titleH2);
+         titleH2.appendChild(textTitleH2);
+
+         let authorP = document.createElement("p");
+         authorP.setAttribute('class','autor');
+         textP = document.createTextNode(author);
+         divFatherLast.appendChild(authorP);
+         authorP.appendChild(textP);
+
+         let publisherBookP = document.createElement("p");
+         publisherBookP.setAttribute('class','editora');
+         textPublisherBook = document.createTextNode(publisherBook);
+         divFatherLast.appendChild(publisherBookP);
+         publisherBookP.appendChild(textPublisherBook);
+
+         if (null !== obj[i].positionABook) {
+           let weeksP = document.createElement("p");
+           weeksP.setAttribute('class','weeks');
+           textWeeks = document.createTextNode('Semana anterior:');
+           divFatherLast.appendChild(weeksP);
+           weeksP.appendChild(textWeeks);
+
+           let weeksSpan = document.createElement("span");
+           weeksSpan.setAttribute('class','weeks');
+           textWeekSpan = document.createTextNode(positionABook);
+           divFatherLast.appendChild(weeksSpan);
+           weeksSpan.appendChild(textWeekSpan);
+         }
+
+         if (null !== semanListABook) {
+           let weeksListP = document.createElement("p");
+           weeksListP.setAttribute('class','weeks');
+           textWeeksList = document.createTextNode('Semanas na lista:');
+           divFatherLast.appendChild(weeksListP);
+           weeksListP.appendChild(textWeeksList);
+
+           let weeksListSpan = document.createElement("span");
+           weeksListSpan.setAttribute('class','weeks');
+           textWeekListSpan = document.createTextNode(semanListABook);
+           divFatherLast.appendChild(weeksListSpan);
+           weeksListSpan.appendChild(textWeekListSpan);
+         }
+         if (null !== sinopseBook) {
+           sinopseBookShort = sinopseBook.substring(0,177);
+           read_more_sinopse = sinopseBook;
+           let divSinopse = document.createElement("div");
+           divSinopse.setAttribute('class','col-l-12 col-s-12 sinopse');
+           divBooks.appendChild(divSinopse);
+
+           let sinopseTitleH3 = document.createElement("h3");
+           textSinopseTitleH3 = document.createTextNode('Sinopse:');
+           divSinopse.appendChild(sinopseTitleH3);
+           sinopseTitleH3.appendChild(textSinopseTitleH3);
+
+           let sinopseTitleP = document.createElement("p");
+           textSinopseTitleP = document.createTextNode(sinopseBookShort);
+           divSinopse.appendChild(sinopseTitleP);
+           sinopseTitleP.appendChild(textSinopseTitleP);
+
+           let inputReadMore = document.createElement("input");
+           inputReadMore.setAttribute('type','checkbox');
+           inputReadMore.setAttribute('class','read-more-state');
+           inputReadMore.setAttribute('id',readMore_);
+           divBooks.appendChild(inputReadMore);
+
+           let divReadMore = document.createElement("div");
+           divReadMore.setAttribute('class','read-more-wrap');
+           divBooks.appendChild(divReadMore);
+
+           let spanReadMore = document.createElement("span");
+           spanReadMore.setAttribute('class','read-more-target');
+           divReadMore.appendChild(spanReadMore);
+
+           let readMoreH3 = document.createElement("h3");
+           textreadMoreH3 = document.createTextNode('Sinopse:');
+           spanReadMore.appendChild(readMoreH3);
+           readMoreH3.appendChild(textreadMoreH3);
+
+           let readMoreP = document.createElement("p");
+           textreadMoreP = document.createTextNode(read_more_sinopse);
+           spanReadMore.appendChild(readMoreP);
+           readMoreP.appendChild(textreadMoreP);
+
+           let readMoreLabel = document.createElement("label");
+           readMoreLabel.setAttribute('for', readMore_);
+           readMoreLabel.setAttribute('class', 'read-more-trigger');
+           divBooks.appendChild(readMoreLabel);
+         }
+
+         i++;
+         readMore++;
+
+       }
+     }
+   }
+}

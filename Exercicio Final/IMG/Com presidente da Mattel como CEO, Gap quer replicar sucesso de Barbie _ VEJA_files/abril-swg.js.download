@@ -1,0 +1,228 @@
+var AbrilSwg = (function () {
+	return;
+	function getSwgUser(d, callback) {
+		var packageName;
+		var productId;
+		var purchaseToken;
+		var get_swg_user_ajax_nonce = $("#get_swg_user_ajax_nonce").val();
+
+		if( d.entitlements && d.entitlements.length ) {
+			for ( var i = 0; i < d.entitlements.length; i++ ) {
+				var subscriptionToken;
+				try{
+					subscriptionToken = JSON.parse( d.entitlements[i].subscriptionToken );
+					if(subscriptionToken.purchaseToken) {
+						packageName   = subscriptionToken.packageName;
+						productId     = subscriptionToken.productId;
+						purchaseToken = subscriptionToken.purchaseToken;
+					}
+				} catch {}
+			}
+
+			var request = $.ajax({
+				url: ajaxurl,
+				method: "POST",
+				async: false,
+				complete: function(data) {
+					if (callback) {
+						callback(data);
+					}
+				},
+				data: {
+					action: "get_swg_user",
+					get_swg_user_ajax_nonce: get_swg_user_ajax_nonce,
+					packageName: packageName,
+					productId: productId,
+					purchaseToken: purchaseToken
+				}
+			});
+		}
+	}
+
+	function startSwG() {
+		console.log(" ############. SWG . ###############");
+		(self.SWG = self.SWG || []).push(function(subscriptions) {
+			window.subscriptions = subscriptions;
+			
+			
+			if (AbrilLogin.getAbrUserCrypt()) {
+
+				subscriptions.getEntitlements().then(function (entitlements) {
+					if (entitlements.entitlements == '') {
+
+						const requestPromise = new Promise(resolve => {
+
+							if (AbrilLogin.getCookie('userCodAssine')) {
+								resolve({ token: AbrilLogin.getCookie('userCodAssine') });
+							}
+						});
+						if (AbrilLogin.getCookie('userCodAssine') !== AbrilLogin.getCookie('AbrilSwgSleepMonth')) {
+							subscriptions.saveSubscription(() => requestPromise).then(
+								result => {
+									if (result) {
+										
+										var d = '';
+										d = new Date();
+										d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
+										AbrilLogin.setCookie('AbrilSwgSleepMonth', AbrilLogin.getCookie('userCodAssine'), d);
+										AbrilLogin.sendMetricsGA('metric2', 'Paywall', 'SwG - Vínculo de conta', 'Vínculo efetuado');
+									} else {
+
+
+										var d = '';
+										d = new Date();
+										d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
+										AbrilLogin.setCookie('AbrilSwgSleepMonth', AbrilLogin.getCookie('userCodAssine'), d);
+
+									}
+								});
+						}
+					}
+				});
+			}
+
+			subscriptions.setOnEntitlementsResponse(entitlementsPromise => {
+				entitlementsPromise.then(entitlements => {
+					console.log(" ############. SWG 6 . ###############");
+					
+					console.log( entitlements );
+					console.log( entitlements.entitlements );
+
+					showPaywallSWG = true;
+
+					if ( !AbrilLogin.getCookie('session')  ) {
+						if (typeof entitlements.entitlements != 'undefined' || entitlements.entitlements !== null) {
+							if(Array.isArray(entitlements.entitlements)){
+								
+
+								if( entitlements.entitlements.length <= 0){
+									if(wp_paywall_vars.tipo_paywall == "closed" && AbrilPaywall.ShowPaywall !== true){
+										return AbrilPaywall.showOfferWp("Bloqueio fechado");
+									}
+									return;
+								}
+								for(var ent = 0; ent < entitlements.entitlements.length; ent ++ ){
+									console.log( 'aqui' );
+									if( entitlements.entitlements[ent].source != "google"){
+										console.log("AUTOLOGIN SWG  " + entitlements.entitlements[ent].subscriptionToken );
+										//AbrilInterfaceMiddleware.tryAutoLoginGoogle(entitlements.entitlements[ent].subscriptionToken);
+										showPaywallSWG = false;
+										console.log("AUTOLOGIN SWG VINCULADO " + entitlements );
+										const  accountPromise = new Promise(( resolve, reject ) => {
+											getSwgUser(entitlements, function(data) {
+												user_assine = data.responseText;
+												console.log( user_assine );												
+										        AbrilLogin.sendMetricsGA( 'metric2', 'Paywall', 'Login Efetuado', 'Conta vinculada - Login automático' );
+												resolve(user_assine);
+											});
+											resolve(user_assine);
+										});
+
+										console.log(accountPromise);
+
+										subscriptions.waitForSubscriptionLookup(accountPromise).then(account => {
+											if (account) {
+												subscriptions.showLoginNotification().then(() => {});
+											}
+										});
+
+										if (wp_paywall_vars.paywall_template !== "1") {
+											setTimeout(function(){
+												location.reload();
+											}, 3000);
+										}
+										return;
+									}
+								}
+
+								if(showPaywallSWG){
+
+									console.log("AUTOLOGIN SWG COMPRA GOOGLE " + entitlements);
+									var user_assine;
+									const  accountPromise = new Promise(( resolve, reject ) => {
+										getSwgUser(entitlements, function(data) {
+											user_assine = JSON.parse(data.responseText);
+											resolve(user_assine);
+										});
+									});
+
+									subscriptions.waitForSubscriptionLookup(accountPromise).then(account => {
+										if (account) {
+											subscriptions.showLoginNotification().then(() => {
+												AbrilLogin.sendMetricsGA( 'metric2', 'Paywall', 'Login Efetuado', 'SwG - Login automático' );
+
+												console.log(account);
+												console.log(account.dscEmail);
+
+												if(typeof account.dscEmail !== 'undefined'){
+													console.log("loginSwgSSO");
+													//$("#email-swg").val(account.dscEmail);
+													//$("#loginSwgSSO").click();
+													console.log("loginSwgSSO clickou");
+												}			
+
+											});
+										}
+									});
+								}
+							}
+						}
+						entitlements.ack();
+					} else {
+						console.log('entitlements.ack');
+						entitlements.ack();
+					}
+				});
+			});
+
+		});
+		AbrilLogin.hideButtons();
+
+	}
+
+	function swgBuyFlow( eDataValue, assineUrl, eventLabel){
+		console.log('=========== ' + assineUrl);
+		subscriptions.subscribe(eDataValue);
+		subscriptions.setOnPaymentResponse(function(paymentResponse) {
+			paymentResponse.then(function(response) {
+				$('.piano-offer-overlay, #piano_offer').hide();
+				var purchaseInfo = JSON.parse( response.purchaseData.data );
+				var iframe = document.createElement( "iframe" );
+				iframe.setAttribute('width', '1');
+				iframe.setAttribute('height', '1');
+				iframe.setAttribute('frameBorder', '0');
+				iframe.setAttribute('id', 'swgAssineIframe');
+				iframe.setAttribute('src', assineUrl + 'portal/loginswg!doLoginSWG.action?googleTokenId=' + response.userData.idToken + '&packageName=' + purchaseInfo.packageName + '&productId=' + purchaseInfo.productId + '&purchaseToken=' + purchaseInfo.purchaseToken);
+				document.body.appendChild(iframe);
+
+				AbrilLogin.sendMetricsGA( 'metric7', 'Paywall', 'Pagamento Efetuado', 'SwG - ' + eventLabel );
+				AbrilLogin.sendMetricsGA( 'Fluxo de assinatura', 'Fluxo de assinatura', 'F-Compra', 'FinalizarCompraSwG' );
+
+				response.complete().then(function(){
+					console.log("xxx Liberar conteúdo xxx");
+					
+					let queryString = window.location.search;
+					let urlParams = new URLSearchParams(queryString);
+					let urlRetorno = urlParams.get('url-retorno') ? urlParams.get('url-retorno') : false;
+					
+					if ( urlRetorno !== false ) {
+						window.location = urlRetorno;
+					} else {
+						window.location.reload();
+					}
+
+
+				});
+			});
+		});	
+		AbrilLogin.sendMetricsGA( 'metric3', 'Paywall', 'Entrada no Fluxo de Pagamento', 'SwG - ' + eventLabel );
+	}
+
+
+	return {
+		startSwG: startSwG,
+		swgBuyFlow: swgBuyFlow,
+		getSwgUser: getSwgUser
+	};
+
+})();

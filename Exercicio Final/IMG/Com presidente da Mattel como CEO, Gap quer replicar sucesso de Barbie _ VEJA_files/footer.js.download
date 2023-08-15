@@ -1,0 +1,674 @@
+$(".menu-item-has-children > a").each(function (index) {
+  $(".menu-item-has-children > a")[index].setAttribute("href", "javascript:;");
+});
+
+
+// FUNÇÃO PARA VERIFICAR SE É FILHO
+function childOf(c, p) {
+  while ((c = c.parentNode) && c !== p);
+  return !!c;
+}
+
+// VARIÁVEIS
+var bodySelector = document.querySelector("body");
+
+var mainHeader = document.querySelector("body>header");
+
+var headerDiv = document.querySelector("body>header>div");
+
+if (mainHeader) {
+  var mainHeaderHeight = mainHeader.offsetHeight;
+}
+
+var scrollInicial = 0;
+
+let sponsorSticky = document.getElementById("sponsored-sticky");
+if (
+  typeof document.getElementsByClassName("mobile-assine")[0] !== "undefined"
+) {
+  document.getElementsByClassName("mobile-assine")[0].style.top = "0";
+}
+
+// evento Veja BTE View
+let elementView = [].slice.call(
+  document.querySelectorAll(
+    "body > main > section.block.edicao-semana > div > div > div.col-s-12.col-l-3 > div > div > a.link"
+  )
+);
+const link_bte = document.querySelector(
+  "body > main > section.block.edicao-semana > div > div > div.col-s-12.col-l-3 > div > div > a.link"
+);
+let wh_link_bte = "";
+if (link_bte) {
+  wh_link_bte = link_bte.getBoundingClientRect();
+}
+var view = false;
+
+if ("" !== wh_link_bte && isInViewport(wh_link_bte)) {
+  gaSendEvent("", "Optimize", "Veja Bt Assinar Edicao", "Veja BTE View", "");
+} else if (
+  "IntersectionObserver" in window &&
+  "IntersectionObserverEntry" in window &&
+  "intersectionRatio" in window.IntersectionObserverEntry.prototype
+) {
+  let elementViewObserver = new IntersectionObserver(function (
+    entries,
+    observer
+  ) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        elementViewObserver.unobserve(entry.target);
+        gaSendEvent(
+          "",
+          "Optimize",
+          "Veja Bt Assinar Edicao",
+          "Veja BTE View",
+          ""
+        );
+      }
+    });
+  });
+
+  elementView.forEach(function (elView) {
+    elementViewObserver.observe(elView);
+  });
+}
+// evento Veja BTE Click
+if (link_bte) {
+  link_bte.addEventListener("click", function () {
+    gaSendEvent("", "Optimize", "Veja Bt Assinar Edicao", "Veja BTE Click", "");
+  });
+}
+
+// LISTENER PARA PEGAR SCROLL DA PÁGINA E DEIXAR MENU FIXADO
+window.addEventListener("scroll", function (event) {
+  var pageScrollTop = document.documentElement.scrollTop;
+
+  if (pageScrollTop > mainHeaderHeight + 1) {
+    if (
+      typeof document.getElementsByClassName("mobile-assine")[0] !== "undefined"
+    ) {
+      document.getElementsByClassName("mobile-assine")[0].style.display =
+        "block";
+    }
+    if (
+      (mainHeader && mainHeader.style.paddingBottom == "0px") ||
+      mainHeader.style.paddingBottom == ""
+    ) {
+      mainHeader.setAttribute(
+        "style",
+        "height:" + mainHeader.offsetHeight + "px"
+      );
+    }
+
+    if (pageScrollTop > scrollInicial && window.innerWidth < 991) {
+      setTimeout(function () {
+        bodySelector.classList.remove("fixed");
+      }, 200);
+      if (sponsorSticky !== null) {
+        setTimeout(function () {
+          sponsorSticky.classList.remove("fixed");
+        }, 200);
+      }
+      if (
+        typeof document.getElementsByClassName("mobile-assine")[0] !==
+        "undefined"
+      ) {
+        document.getElementsByClassName("mobile-assine")[0].style.top = "0";
+        document.getElementsByClassName("mobile-assine")[0].style.marginBottom =
+          "-5px";
+        if ($("body.branded-hub")) {
+          document.getElementsByClassName(
+            "mobile-assine"
+          )[0].style.marginBottom = "-15px";
+        }
+      }
+      if (sponsorSticky !== null) {
+        setTimeout(function () {
+          sponsorSticky.classList.remove("fixed");
+        }, 200);
+      }
+      bodySelector.classList.remove("searchOpen");
+    } else {
+      bodySelector.classList.add("fixed");
+      if (
+        typeof document.getElementsByClassName("mobile-assine")[0] !==
+        "undefined"
+      ) {
+        document.getElementsByClassName("mobile-assine")[0].style.top = "52px";
+      }
+      if (sponsorSticky !== null) {
+        sponsorSticky.classList.add("fixed");
+      }
+    }
+
+    scrollInicial = pageScrollTop;
+  } else {
+    bodySelector.classList.remove("fixed");
+    if (
+      typeof document.getElementsByClassName("mobile-assine")[0] !== "undefined"
+    ) {
+      document.getElementsByClassName("mobile-assine")[0].style.top = "0";
+    }
+    if (sponsorSticky !== null) {
+      sponsorSticky.classList.remove("fixed");
+    }
+    if (mainHeader) {
+      mainHeader.setAttribute("style", "height:auto");
+    }
+  }
+});
+
+
+
+window.lazySizesConfig = window.lazySizesConfig || {};
+window.lazySizesConfig.requireJs = function (modules, cb) {
+  window.require(modules, cb);
+};
+
+$(".ingrediente-check").on("click", function (event) {
+  $(event.target).toggleClass("checked");
+  $(event.target)
+    .closest("li")
+    .find(".ingrediente-formatado")
+    .toggleClass("checked");
+});
+
+$(".ingrediente-formatado").on("click", function (event) {
+  $(this).toggleClass("checked");
+  $(this).prev().toggleClass("checked");
+});
+
+// Video Broadcast - Troca a thumbnail pelo iframe no cliq
+$(".video-overlay").click(function (e) {
+  e.preventDefault();
+  var th = $(this);
+  var embed_url = th.data("src");
+  var width = th.width();
+  var height = th.height();
+  var iframe =
+    '<iframe src="' +
+    embed_url +
+    '?mute=0&showinfo=0&controls=1&autoplay=1" width="' +
+    width +
+    '" height="' +
+    height +
+    '" frameborder="0" allow="autoplay" allowfullscreen></iframe>';
+  th.parent().html(iframe);
+});
+
+$(".social-media-top .btn-media-top a").click(function () {
+  gaSendEvent("", "Fluxo de assinatura", "A-Assine", "1-BT.Header", "");
+});
+
+$(".search-area a").click(function () {
+  gaSendEvent("", "Fluxo de assinatura", "A-Assine", "1-BT.Header", "");
+});
+
+$(".sidebarMenu>ul>li.assine-btn a").click(function () {
+  gaSendEvent("", "Fluxo de assinatura", "A-Assine", "3-BT.Menu", "");
+});
+
+$(".block.edicao-semana .edition .link").click(function () {
+  gaSendEvent("", "Fluxo de assinatura", "A-Assine", "4-BT.Ed.Semana", "");
+});
+
+$(".f-brands .col-s-6 a").click(function () {
+  if (this.innerHTML == "Ver ofertas") {
+    gaSendEvent("", "Fluxo de assinatura", "A-Assine", "5-BT.Ofertas", "");
+  }
+});
+
+$(".mobile-assine").click(function () {
+  gaSendEvent("", "Fluxo de assinatura", "A-Assine", "6-BT.TopoMobile", "");
+});
+
+$(
+  ".injected-paywall .new-paywall-promotion-sign .new-paywall-promotion-sign-abril-button"
+).click(function () {
+  if (this.innerHTML == "Conheça outros planos") {
+    gaSendEvent(
+      "",
+      "Fluxo de assinatura",
+      "A-Assine",
+      "8-BT.PWOutrosPlanos",
+      ""
+    );
+  } else {
+    tituloOferta = jQuery(this).parent().parent().parent().parent();
+    tituloOferta = tituloOferta[0].getAttribute("data-type");
+    positionOferta =
+      $(".new-paywall-promotion-sign-abril-button").index(this) + 1;
+    if (this.innerHTML !== "CONTINUE LENDO SEM ASSINAR") {
+      gaSendEvent(
+        "",
+        "Fluxo de assinatura",
+        "B-Assinatura",
+        positionOferta + "." + positionOferta + " - " + "PW" + tituloOferta,
+        ""
+      );
+    }
+  }
+});
+
+if (window.location.href.indexOf("ofertas") > -1) {
+  setTimeout(function () {
+    let queryString = window.location.search;
+    let urlParams = new URLSearchParams(queryString);
+    var pushOrigem = urlParams.get("utm_source");
+    var tipoOrigem = urlParams.get("tipo_origem");
+
+    if (pushOrigem !== null) {
+      if (pushOrigem == "pushnews") {
+        gaSendEvent("", "Fluxo de assinatura", "A-Assine", "9-Push", "");
+      }
+    }
+
+    if (tipoOrigem !== null) {
+      if (tipoOrigem == "qrcode") {
+        gaSendEvent("", "Fluxo de assinatura", "B-Assinatura", "4-QRCode", "");
+      } else if (tipoOrigem == "calhau") {
+        gaSendEvent(
+          "",
+          "Fluxo de assinatura",
+          "A-Assine",
+          "2-Bt.BannerHeader",
+          ""
+        );
+      }
+    }
+  }, 3500);
+
+  $(".new-paywall-promotion-sign-abril-button").click(function (e) {
+    e.stopPropagation();
+    tituloOferta = jQuery(this).parent().parent().parent().parent();
+    tituloOferta = tituloOferta[0].getAttribute("data-type");
+    positionOferta =
+      $(".new-paywall-promotion-sign-abril-button").index(this) + 1;
+
+    gaSendEvent(
+      "",
+      "Fluxo de assinatura",
+      "B-Assinatura",
+      positionOferta + " - " + tituloOferta,
+      ""
+    );
+  });
+}
+
+// EVENTOS GA EXP LOGADA
+
+$("#user-exp-ctrl").click(function (e) {
+  gaSendEvent(
+      "",
+      "Usuário autenticado",
+      "View",
+      "",
+      ""
+  );
+
+  var userRow = document.querySelectorAll('.user-exp-row .textlink a')
+  userRow.forEach(function(notification) {
+    notification.addEventListener('click', function() {
+      var itemName = $(this).closest('.user-exp-row').find('.user-alert-title mark').text();
+      gaSendEvent(
+        "",
+        "Usuário autenticado",
+        "Click",
+        itemName,
+        ""
+      );
+
+    })
+  })
+
+  $(".user-alert-title a").click(function (e) {
+  var alertItem = $(this).closest('.user-exp-row').find('.user-alert-qt').text();
+  gaSendEvent(
+        "",
+        "Usuário autenticado",
+        "Click",
+        alertItem,
+        ""
+    );
+  })
+
+})
+
+$(".user-alert-close").click(function (e) {
+  gaSendEvent(
+      "",
+      "Usuário autenticado",
+      "Click",
+      "Fechou box de notificação",
+      ""
+  );
+})
+
+$(".user-exp-account").click(function (e) {
+  gaSendEvent(
+      "",
+      "Usuário autenticado",
+      "Click",
+      "Entrou no perfil",
+      ""
+  );
+})
+
+$(".user-exp-logout").click(function (e) {
+  gaSendEvent(
+      "",
+      "Usuário autenticado",
+      "Click",
+      "Efetuou logoff",
+      ""
+  );
+})
+
+// EVENTOS GA EXP LOGADA
+
+
+if (document.readyState !== "loading") {
+  if ($("body.home").length > 0) {
+    removeLazyloadViewport();
+  }
+} else {
+  document.addEventListener("DOMContentLoaded", function () {
+    if ($("body.home").length > 0) {
+      removeLazyloadViewport();
+    }
+  });
+}
+
+// Script que remove o lazyload da primeira dobra na home
+function removeLazyloadViewport() {
+  let firstBlock = $(".block:first");
+
+  $(firstBlock)
+    .find("img")
+    .each(function (index, value) {
+      if (checkIsInViewport($(this))) {
+        $(this).removeAttr("loading");
+        $(this).removeClass("lazyload");
+        $(this).removeClass("lazyloaded");
+
+        let datasrc = $(this).data('src');
+        $(this).attr('src', datasrc);
+      }
+    });
+}
+
+function checkIsInViewport(element) {
+  var rect = element[0].getBoundingClientRect();
+  var isInViewport =
+    rect.top >= 0 &&
+    rect.left >= 0 &&
+    rect.bottom <=
+      (window.innerHeight || document.documentElement.clientHeight) &&
+    rect.right <= (window.innerWidth || document.documentElement.clientWidth);
+  return isInViewport;
+}
+
+// Script que faz o lazy loading em imagens de background em blocos
+// Para utilizar, apenas incluir a classe lazy-bg no elemento e trocar o style="backgroung-img(url)", colocando o src como data-src, assim que ele aparecer no viewport a imagem será carregada
+function lazyloadBlockImage() {
+  let lazyBackgrounds = [].slice.call(document.querySelectorAll(".lazy-bg"));
+
+  if (
+    "IntersectionObserver" in window &&
+    "IntersectionObserverEntry" in window &&
+    "intersectionRatio" in window.IntersectionObserverEntry.prototype
+  ) {
+    let lazyBackgroundObserver = new IntersectionObserver(function (
+      entries,
+      observer
+    ) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.style.backgroundImage =
+            "url(" + entry.target.dataset.src + ")";
+          lazyBackgroundObserver.unobserve(entry.target);
+        }
+      });
+    });
+
+    lazyBackgrounds.forEach(function (lazyBackground) {
+      lazyBackgroundObserver.observe(lazyBackground);
+    });
+  }
+}
+
+if (document.readyState !== "loading") {
+  lazyloadBlockImage();
+  if ($("body.home").length > 0) {
+    removeLazyloadViewport();
+  }
+} else {
+  document.addEventListener("DOMContentLoaded", function () {
+    lazyloadBlockImage();
+    if ($("body.home").length > 0) {
+    removeLazyloadViewport();
+  }
+  });
+}
+
+if(document.body.classList.contains('tag')){
+  $('.fotos-galeria-person').each(function( index ) {
+    Fancybox.bind('[data-fancybox="gallery-tag-'+$( this )[0].getAttribute('dataIdGallery')+'"]', {
+      groupAll: true,
+    });
+  });
+}
+
+if ($("#completeText")[0] !== undefined) {
+  var textoTagPerson = $("#completeText")[0].textContent;
+  if (textoTagPerson.length > 189) {
+    $("#ler-mais-person")[0].style.display = "initial";
+    $("#ler-mais-person").on("click", function () {
+      $("#shortText")[0].style.display = "none";
+      $("#completeText")[0].style.display = "block";
+      $("#ler-mais-person")[0].style.display = "none";
+    });
+  }
+}
+
+$(document).ready(function () {
+  // verifica se a votação não está desabilitada pelo usuário já ter votado anteriormente
+  let changeText = false;
+  if ($(".kksr-disabled").length === 0) {
+    // Altera o texto da avaliação se não tiver votado
+    $("#kk_star_texto_avaliacao").text(
+      "Avalie essa receita e confira a classificação geral"
+    );
+
+    // mapeia todos os elementos com a classe .kksr-star
+    var starChild = $(".kksr-star")
+      .map(function () {
+        return this;
+      })
+      .get();
+
+    // para cada elemento, encontra o elemento filho
+    $(starChild).each(function (star, value) {
+      $(star).each(function (el, value) {
+        // se o elemento filho possui nota, continua
+        if ($($(starChild)[value - 1]).attr("data-star") !== undefined) {
+          // atribui um evento de one ao clique, para selecionar a nota que o usuário der
+          $($(starChild)[value - 1]).one("click", function (el) {
+            $("#custom_rating_recipe").css("pointerEvents", "none");
+            let currentVote = $(this).attr("data-star");
+            gaSendEvent(
+              "",
+              "Star Rating",
+              "Voto do leitor",
+              currentVote + " estrelas",
+              ""
+            );
+
+            // Descolore as estrelas do lado direito da votação se estiverem ativas
+            if (currentVote < 5) {
+              let activeStars = $(".kksr-stars-active .kksr-star");
+
+              jQuery.each(activeStars, function (index, starActive) {
+                if (index > currentVote - 1) {
+                  let starChildrenActive = $(starActive).find(".kksr-icon");
+                  starChildrenActive.css({
+                    "background-image":
+                      "url(/wp-content/plugins/kk-star-ratings-custom/src/core/public/svg/inactive.svg)"
+                  });
+                }
+              });
+            }
+
+            let starSiblingsp = [];
+            let starSiblingsPrev = $(this).prev();
+            starSiblingsp.push($(this));
+
+            // Colore as estrelas da votação
+            for (xp = 0; xp < 4; xp++) {
+              if ($(starSiblingsPrev).hasClass("kksr-star")) {
+                starSiblingsp.push($(starSiblingsPrev));
+                starSiblingsPrev = $(starSiblingsPrev).prev();
+              }
+            }
+
+            jQuery.each(starSiblingsp, function (index, starPrev) {
+              let starChildrenPrev = $(starPrev).find(".kksr-icon");
+              starChildrenPrev.css({
+                "background-image":
+                  "url(/wp-content/plugins/kk-star-ratings-custom/src/core/public/svg/active.svg)"
+              });
+            });
+
+            if (changeText === false) {
+              setTimeout(function () {
+                $("#kk_star_texto_avaliacao").text(
+                  "Classificação média dos usuários"
+                );
+
+                // O plugin Star Rating possui também uma modificaçao que inclui o
+                // setTimeout, ao dar manutenção em um, não esquecer o outro
+              }, 1000);
+            }
+            changeText = true;
+          });
+        }
+      });
+    });
+  } else {
+    if ($("#kk_star_texto_avaliacao").length !== 0) {
+      // Altera o texto da avaliação caso já tenha votado
+      $("#kk_star_texto_avaliacao").text("Classificação média dos usuários");
+    }
+  }
+});
+
+if ($(".OUTBRAIN").length > 0) {
+  const outbrainObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting) {
+        outbrainObserver.unobserve(entry.target);
+        gaSendEvent("", "Parceiros", "View", "Outbrain", "");
+      }
+    });
+  }, {});
+  if (null !== document.querySelector("[id^=outbrain_widget]")) {
+    outbrainObserver.observe(document.querySelector("[id^=outbrain_widget]"));
+  }
+}
+
+if ($(".MGID").length > 0) {
+  const mgidObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting) {
+        mgidObserver.unobserve(entry.target);
+        gaSendEvent("", "Parceiros", "View", "MGID", "");
+      }
+    });
+  }, {});
+
+  mgidObserver.observe(document.querySelector(".MGID"));
+}
+
+$('.sidebarMenu > ul > li.menu-item:not(.menu-item-has-children) > a, .sidebarMenu > ul > li.menu-item.menu-item-has-children > ul.sub-menu > li.menu-item > a').click(function(){
+  var href= $(this).attr('href');
+  if ('javascript:;' !== href) {
+    if (href.indexOf("://") >= 0) {
+      gaSendEvent("", "Menu hamburguer", "Click", href, "");
+    }
+    else {
+      gaSendEvent("", "Menu hamburguer", "Click", window.location.origin+href, "");
+    }
+  }
+  window.location=href;
+  return false;
+});
+
+let menuOpener = document.querySelectorAll(".menuOpener"),
+  searchOpener = document.querySelectorAll(".searchOpener"),
+  itemHasChildren = document.querySelectorAll(".menu-item-has-children");
+
+// LISTENER PARA ABRIR MENU QUANDO CLICADO
+menuOpener.forEach(function (e) {
+  e.addEventListener("click", function () {
+
+    bodySelector.classList.toggle("menuOpen");
+    if (bodySelector.classList.contains("menuOpen")) {
+       gaSendEvent("", "Menu hamburguer", "View", "", "");
+    }
+  });
+});
+
+// LISTENER PARA ABRIR A BUSCA QUANDO CLICADO
+searchOpener.forEach(function (e) {
+  e.addEventListener("click", function () {
+    bodySelector.classList.toggle("searchOpen");
+  });
+});
+
+// LISTENER PARA FECHAR A BUSCA E O MENU QUANDO CLICADO EM UM LUGAR QUE NÃO SEJAM ELES
+document.addEventListener("click", function (e) {
+  if (
+    typeof e.target.className !== "undefined" &&
+    typeof e.target.className !== "object"
+  ) {
+    if (
+      e.target.className.indexOf("searchOpener") == -1 &&
+      !childOf(e.target, document.querySelector(".searchOpener")) &&
+      !childOf(e.target, document.querySelector(".searchOpener + form"))
+    ) {
+      bodySelector.classList.remove("searchOpen");
+    }
+    if (
+      e.target.className.indexOf("menuCloser") !== -1 ||
+      (e.target.className.indexOf("menuOpener") == -1 &&
+        !childOf(e.target, document.querySelector(".sidebarMenu")) &&
+        !childOf(e.target, document.querySelector(".menuOpener")))
+    ) {
+      bodySelector.classList.remove("menuOpen");
+    }
+  }
+});
+
+// LISTENER PARA ABRIR SUBMENU
+itemHasChildren.forEach(function (e) {
+  e.addEventListener("click", function () {
+    this.classList.toggle("active");
+  });
+});
+
+// SALVAR CONTEUDO
+$('.seguir-author').click(function(e){
+    var s = $(this);
+    s[0].classList.toggle("seguindo");
+});
+
+$('.seguir-author-blog').click(function(e){
+    var s = $(this);
+    s[0].classList.toggle("seguindo-blog");
+});
+
+$('.salvar-conteudo-materia').click(function(e){
+  var s = $(this);
+  s[0].classList.toggle("seguindo-materia");
+});

@@ -1,0 +1,181 @@
+(function() {
+	var cookieLGPDName = "abril_LGPD";
+	var endPointFirebase = "https://us-central1-abril-id-testes-1528223718961.cloudfunctions.net/lgpd";
+
+
+	if ('undefined' !== typeof assine_environment) {
+		if( assine_environment[0] == "sandbox"){
+			endPointFirebase = "https://us-central1-abril-id-homolog.cloudfunctions.net/lgpd";
+		}
+	}
+
+	if( AbrilCustomDimension.checkUnicIdGlobal() ){
+		var unicIdLgpd = AbrilCustomDimension.getUnicIdGlobal();
+	}else{
+		AbrilCustomDimension.persistIdGlobal();
+		var unicIdLgpd = AbrilCustomDimension.getUnicIdGlobal();
+	}
+
+	function getCookieLGPD(cname, cpar) {
+		var name = cname + "=";
+		var ca = document.cookie.split(';');
+		for(var i = 0; i <ca.length; i++) {
+			var c = ca[i];
+			while (c.charAt(0)==' ') {
+				c = c.substring(1);
+			}
+			if (c.indexOf(name) == 0 && cpar == undefined) {
+				return c.substring(name.length,c.length);
+			}
+			if (c.indexOf(name) == 0 && cpar) {
+				var arr = [];
+				str = c.substring(name.length,c.length);
+				str = str.split(":");
+				for(var j=0; j<str.length; j++) {
+					a = str[j].split("=");
+					arr[a[0]] = a[1];
+				}
+
+				if(arr[cpar]) {
+					return arr[cpar];
+				}
+			}
+		}
+		return "";
+	}
+
+	function criarCookieLGPD(aceite){
+		var m = new Date();
+		m.setTime(m.getTime() + (365*24*60*60*1000));
+		var expiresLGPD = "expires="+ m.toUTCString();
+		var cvalueLGPD = aceite;
+		console.log("Criar LGPD");
+		document.cookie = cookieLGPDName + "=" + cvalueLGPD + ";" + expiresLGPD + ";domain="+window.location.host+";path=/";
+	}
+
+	function showModalLGPD(){
+		$(window).one('scroll',function() {
+			$( "body" ).append( `
+				<div class="LGPD-notice" >
+
+				<div id="LGPD-desktop" class="LGPD-mensagem">
+				<span>Este site utiliza cookies e tecnologias semelhantes para personalizar publicidade e recomendar conteúdo de seu interesse. Ao navegar em nosso serviço você aceita tal monitoramento. Para mais informações leia nossa <a href="https://abril.com.br/politica-de-privacidade/" rel="noopener" target="_blank" >Política de Privacidade</a></span>
+				</div>
+				<div class="LGPD-fechaCOntabilizadoRodape">
+				<div class="LGPD-blcAss">
+				<span class="LGPD-aceito"> <a id="aceitoLGPD">Concordo</a></span>
+
+				</div>
+				</div>
+				</div>
+			` );
+
+		$('#aceitoLGPD').click(function(e){
+			$(".LGPD-notice").css("display","none");
+			criarCookieLGPD(true);
+			
+			postMetaLGPDFirebase(true);
+
+		});	
+
+		$('#NaoAceitoLGPD').click(function(e){
+			$(".LGPD-notice").css("display","none");
+			criarCookieLGPD(false);
+			//postMetaLGPD(false);
+			if(typeof wp_paywall_vars !== 'undefined'){
+				if( wp_paywall_vars.dados_de_contabilizacao > 1){
+					postMetaLGPDFirebase(false);
+				}
+			}
+		});
+
+
+	});
+
+	}
+
+	function getLGPDApi(){
+		let endPoint = endPointFirebase;
+		if( typeof gaGlobal !== 'object' ){
+			return;
+		}
+
+		let postUrl  = endPoint
+		postUrl += `?codTipoIdentificador=gaId`;
+		postUrl += `&lgpdMarca=${lgpd_brand}`;
+		postUrl += `&codIdentificador=${unicIdLgpd}`;
+
+		$.ajax({
+			url: postUrl,
+			type: 'get',
+			dataType: 'json',
+			async: true,
+			success: function(data) {
+				if (data.lgpd !== null) {
+					return criarCookieLGPD(data.lgpd);
+				}
+				return showModalLGPD();
+			},
+		});
+	}
+
+	function postMetaLGPDFirebase(aceite){
+		let gaFull = unicIdLgpd;
+
+		if( gaFull == "" || typeof gaFull == "undefined" || gaFull == null ){
+			return;
+		}		
+
+		let postUrl  = endPointFirebase ;
+
+		$.ajax({
+			url: postUrl,
+			type: 'post',
+			data: { "codTipoIdentificador" : "gaId", "codIdentificador" : gaFull, "lgpdMarca" : `${lgpd_brand}`, "concordou" : `${aceite}` },
+			dataType: 'json',
+			async: true,
+			success: function(data) {
+			},
+		});
+	}		
+
+	function isGaLoaded(callback){
+		var isLoaded = false;
+		if( (typeof gtag === 'function') || (typeof gaGlobal === 'object') ){
+			isLoaded = true;
+		}
+		if (isLoaded === true) {
+			callback();
+		} else {
+			setTimeout(function (e) {
+				isGaLoaded(callback);
+			}, 1000);
+		}
+	}
+
+	var cookieLGPD = getCookieLGPD(cookieLGPDName);
+	if(cookieLGPD){
+		console.log("Achou cookie LGPD");
+	} else {
+		isGaLoaded(getLGPDApi);
+	}
+
+	if (window.innerWidth < 991) {
+	    var lgpdInterval = setInterval(function() {
+	        var count = 0;
+	        var lgpdnotice = document.querySelectorAll('.LGPD-notice')[0];
+	        if (typeof lgpdnotice !== 'undefined') {
+	            lgpdnotice.style.height = "152px"
+	            lgpdnotice.style.position = "absolute";
+	            lgpdnotice.style.top = "300px";
+	            clearInterval(lgpdInterval);
+	        } else {
+	            count = count + 1;
+	        }
+	        if (count === 20) {
+	            clearInterval(lgpdInterval);
+	        }
+	    }, 100)
+	}
+
+})();

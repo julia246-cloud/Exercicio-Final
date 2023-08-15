@@ -1,0 +1,130 @@
+'use strict'
+var getMatchDetail = {
+
+  intervalDetail: null,
+  divsAppendInfo: {matchInfo: document.querySelector("#match-info"), matchSidebar: document.querySelector(".sidebar-front-page"), matchDetails: document.querySelector("#list-match")},
+
+  getTimestamp: function() {
+    var rounding = 1000 * 60;
+    var currentDate = new Date();
+    var roundedToLatestMinute = new Date( Math.round( currentDate.getTime() / rounding ) * rounding );
+    return encodeURIComponent( roundedToLatestMinute.getTime() ) + '/';
+  },
+
+  matchAction: function () {
+    var _this = this;
+    var hostNameMatch  = location.origin + location.pathname;    
+    var paramUrlMatch  = "aovivo/";
+
+    // Ajax to get game details
+    var request = new XMLHttpRequest();
+    request.responseType = "document";
+    var urlGetLive = hostNameMatch + paramUrlMatch + this.getTimestamp();
+    request.open("GET", urlGetLive, true);
+
+    request.onload = function(e) {
+      if (request.readyState === XMLHttpRequest.DONE ) {
+       if (request.status === 200) {
+
+        // ajax result
+        var result = request.response;
+
+        // get element to append the match details
+        var matchLiveInfo       = result.querySelector("#score-header");
+        var matchLiveDetails    = result.querySelector("#live-comments");
+        var matchLiveStatistics = result.querySelector("#game-stats");
+        var matchLivePlayers    = result.querySelector("#team-lineup");
+
+        // Append itens on page
+        if(matchLiveInfo) {
+          _this.divsAppendInfo.matchInfo.innerHTML = '';
+          _this.divsAppendInfo.matchInfo.appendChild(matchLiveInfo);
+        }
+        if(matchLiveDetails) {
+          _this.divsAppendInfo.matchDetails.innerHTML = '';
+          var elementHtml = matchLiveDetails.innerHTML;
+          elementHtml = elementHtml.replace(/_1_/g, "'");
+          elementHtml = elementHtml.replace(/_2_/g, "&amp;");
+          elementHtml = elementHtml.replace(/_3_/g, "&");
+          elementHtml = elementHtml.replace(/_4_/g, "<");
+          elementHtml = elementHtml.replace(/_5_/g, ">");
+          elementHtml = elementHtml.replace(/_6_/g, "/");
+          elementHtml = elementHtml.replace(/_7_/g, "%");
+
+          _this.divsAppendInfo.matchDetails.innerHTML = elementHtml;
+
+          var script = document.createElement('script');
+          script.src = "https://platform.twitter.com/widgets.js";
+          _this.divsAppendInfo.matchDetails.appendChild(script);
+
+        }
+        if(matchLivePlayers || matchLiveStatistics) {
+          if (_this.divsAppendInfo.matchSidebar != null) {
+            _this.divsAppendInfo.matchSidebar.innerHTML = '';
+            if(matchLivePlayers) {
+              _this.divsAppendInfo.matchSidebar.appendChild(matchLivePlayers);
+            }
+            if(matchLiveStatistics) {
+              _this.divsAppendInfo.matchSidebar.appendChild(matchLiveStatistics);
+            }
+          }
+        }
+        // Apply click action to anchor links
+        _this.navigationMatch();
+
+        // Verify if game ended and clear interval
+        var matchLiveDetailsFirstItem = matchLiveDetails.querySelector("li:first-child");
+        if( matchLiveDetailsFirstItem.getAttribute("data-end-game") && "true" === matchLiveDetailsFirstItem.getAttribute("data-end-game") ) {
+          _this.clearIntervalDetail();
+        }
+      }
+    }
+  };
+  request.send();
+},
+
+setIntervalDetail: function() {
+  var _this = this;
+  this.intervalDetail = window.setInterval(function() { _this.matchAction(); }, 60000);
+},
+
+clearIntervalDetail: function() {
+  console.log("Encerrou o jogo!");
+  clearInterval(this.intervalDetail);
+},
+
+// Navigation to match links
+navigationMatch: function() {
+  var links_match = document.querySelectorAll(".match-info.links a"), i;
+  for (i = 0; i < links_match.length; ++i) {
+    links_match[i].addEventListener("click",function(e){
+      e.preventDefault();
+      var anchor = $("a[name='"+ this.getAttribute("href").split("#")[1] +"']");
+      if(true == $('#abrAD_leaderboard1').is(':visible')){
+        var height_scrolling = $('#abrAD_leaderboard1').height()+99;
+      }else{
+        var height_scrolling = 99;
+      }
+      $('html,body').animate({scrollTop: anchor.offset().top - height_scrolling},'fast');
+
+    },false);
+  }
+},
+
+init: function() {
+
+  var containerMatchStatistics = document.createElement('div');
+  containerMatchStatistics.setAttribute("id", "match-sidebar");
+
+  if( this.divsAppendInfo.matchSidebar && 0 < this.divsAppendInfo.matchSidebar.childNodes.length ) {
+    this.divsAppendInfo.matchSidebar.insertBefore(containerMatchStatistics, this.divsAppendInfo.matchSidebar.childNodes[2]);
+    this.divsAppendInfo.matchSidebar = document.querySelector("#match-sidebar");
+  }
+  if (document.body.classList.contains('single-minuto')) {
+    this.matchAction();
+    this.setIntervalDetail();
+  }
+}
+};
+
+getMatchDetail.init();

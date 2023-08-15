@@ -1,0 +1,72 @@
+let itemId = 1;
+
+function ourCarousel(ele,nav){
+  let carousel=ele.closest('.our-carousel');
+  let carouselItemsPerTurn=carousel.data('items-per-turn');
+  let carouselItemWidth=ele.siblings('.our-carousel-item').outerWidth(true);
+  const dots = $('.breaking-carousel .our-carousel .our-carousel-dots').children();
+  for (let index = 1; index <= dots.length; index++) {
+    dots[index-1].setAttribute('class', itemId !== index ? 'our-carousel-dot': 'our-carousel-dot active');
+  }
+
+  carousel.animate({
+    scrollLeft:nav+'='+carouselItemWidth*(carouselItemsPerTurn?carouselItemsPerTurn:1)
+  });
+  return false;
+}
+
+function carouselArrows() {
+  $('.our-carousel .icon.arrow-left').click(function(){
+    if ($(this)[0].getAttribute("class").indexOf("fade-out") < 0) {
+      itemId--;
+      ourCarousel($(this),'-');
+    }
+  });
+
+  $('.our-carousel .icon.arrow-right').click(function(){
+    if ($(this)[0].getAttribute("class").indexOf("fade-out") < 0) {
+      itemId++;
+      ourCarousel($(this),'+');
+    }
+  });
+}
+
+const breakingCarouselFirstChild = $('.breaking-carousel .our-carousel .our-carousel-dots').children()[0];
+if (breakingCarouselFirstChild) {
+  breakingCarouselFirstChild.setAttribute('class', 'our-carousel-dot active');
+}
+
+if(screen.width<992) {
+  $('.breaking-carousel .our-carousel').scroll(function(){
+    const atualItem = Math.round($('.breaking-carousel .our-carousel').scrollLeft() / screen.width);
+    const dots = $('.breaking-carousel .our-carousel .our-carousel-dots').children();
+    for (let index = 0; index < dots.length; index++) {
+      dots[index].setAttribute('class', atualItem !== index ? 'our-carousel-dot': 'our-carousel-dot active');
+    }
+  });
+}
+
+if(screen.width>991){
+  $('.our-carousel .icon.arrow-left').addClass('fade-out');
+  $('.our-carousel').on('scroll',function(){
+    if($(this).scrollLeft()===0){
+      $(this).find('.icon.arrow-left').addClass('fade-out');
+    }else{
+      $(this).find('.icon.arrow-left').removeClass('fade-out');
+    }
+    if($(this).scrollLeft()+$(this).innerWidth()>=$(this)[0].scrollWidth){
+      $(this).find('.icon.arrow-right').addClass('fade-out');
+    }else{
+      $(this).find('.icon.arrow-right').removeClass('fade-out');
+    }
+  });
+}
+
+function breakingCarousel() {
+  let carousel = $('.block.breaking-news .our-carousel');
+  let totalItems = carousel.children('.our-carousel-item');
+  console.log(totalItems.lenght);
+}
+
+breakingCarousel();
+carouselArrows();
